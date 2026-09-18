@@ -1,19 +1,44 @@
 {
   "title": "Chibi Emotes",
-  "description": "Seven-emotion emote sets — one sheet per character. Individual PNGs live in the source folder.",
+  "description": "Seven-emotion emote sets. One sheet per character.",
+  "storyTitle": "Description",
+  "story": "Emoticons made for friends as messaging stickers and twitch icons.",
   "cover": "lkthebest Emotes.jpg",
-  "order": 2,
+  "order": 1,
   "pieces": {
-    "lkthebest Emotes.jpg": { "title": "Grimeye", "order": 1 },
-    "Robo Bruh Emotes.jpg": { "title": "Bot" },
-    "Brain Jar Emotes.jpg": { "title": "Brain Jar" },
-    "Don Slayer Emotes.jpg": { "title": "Duck" },
-    "Death Kiwi Emotes.jpg": { "title": "Kiwi" },
-    "Mecha.jpg": { "title": "Mecha" },
-    "Pirate Icons.jpg": { "title": "Pirate" },
-    "Plague Raven.jpg": { "title": "Plague Raven" },
-    "WW1 Soldier Emotes.jpg": { "title": "WW1 Soldier" },
-    "Robert Tech.jpg": { "title": "Tech" },
-    "Lil AK-47 Emotes.jpg": { "title": "Whale" }
+    "lkthebest Emotes.jpg": {
+      "title": "Grimeye",
+      "order": 1
+    },
+    "Robo Bruh Emotes.jpg": {
+      "title": "Bot"
+    },
+    "Brain Jar Emotes.jpg": {
+      "title": "Brain Jar"
+    },
+    "Don Slayer Emotes.jpg": {
+      "title": "Duck"
+    },
+    "Death Kiwi Emotes.jpg": {
+      "title": "Kiwi"
+    },
+    "Mecha.jpg": {
+      "title": "Mecha"
+    },
+    "Pirate Icons.jpg": {
+      "title": "Pirate"
+    },
+    "Plague Raven.jpg": {
+      "title": "Plague Raven"
+    },
+    "WW1 Soldier Emotes.jpg": {
+      "title": "WW1 Soldier"
+    },
+    "Robert Tech.jpg": {
+      "title": "Tech"
+    },
+    "Lil AK-47 Emotes.jpg": {
+      "title": "Whale"
+    }
   }
 }

@@ -1,17 +1,48 @@
 {
   "title": "Lilith's Gaze",
   "description": "Character work for the Lilith's Gaze setting — Talia from first sketch to final render.",
+  "storyTitle": "Story",
+  "story": "Talia has been exploited all her life, until she meets a mysterious stranger that offered a deal, giving her demonic powers that lets her rise in the criminal underworld.",
   "cover": "TaliaFinal.jpg",
-  "order": 1,
+  "order": 2,
   "pieces": {
-    "TaliaFinal.jpg": { "title": "Talia", "caption": "Final render", "order": 1 },
-    "TaliaFinalBright.jpg": { "title": "Talia (bright)", "caption": "Final render, lit variant", "order": 2 },
-    "TaliaDetail.jpg": { "title": "Talia — detail pass", "order": 3 },
-    "TaliaBasicColorRed.jpg": { "title": "Talia — flat colour (red)", "order": 4 },
-    "TaliaBasicColorPurple.jpg": { "title": "Talia — flat colour (purple)", "order": 5 },
-    "TaliaOutline.jpg": { "title": "Talia — line art", "order": 6 },
-    "Talia Sketch.jpg": { "title": "Talia — pencil sketch", "order": 7 },
-    "Throne Sketch.jpg": { "title": "Throne — pencil sketch", "order": 8 },
-    "Chibi Sketch.jpg": { "title": "Chibi — pencil sketch", "order": 9 }
+    "TaliaFinal.jpg": {
+      "title": "Talia",
+      "caption": "Final render",
+      "order": 1
+    },
+    "TaliaFinalBright.jpg": {
+      "title": "Talia (bright)",
+      "caption": "Final render, lit variant",
+      "order": 2
+    },
+    "TaliaDetail.jpg": {
+      "title": "Talia — detail pass",
+      "order": 3
+    },
+    "TaliaBasicColorRed.jpg": {
+      "title": "Talia — flat colour (red)",
+      "order": 4
+    },
+    "TaliaBasicColorPurple.jpg": {
+      "title": "Talia — flat colour (purple)",
+      "order": 5
+    },
+    "TaliaOutline.jpg": {
+      "title": "Talia — line art",
+      "order": 6
+    },
+    "Talia Sketch.jpg": {
+      "title": "Talia — pencil sketch",
+      "order": 7
+    },
+    "Throne Sketch.jpg": {
+      "title": "Throne — pencil sketch",
+      "order": 8
+    },
+    "Chibi Sketch.jpg": {
+      "title": "Chibi — pencil sketch",
+      "order": 9
+    }
   }
 }
