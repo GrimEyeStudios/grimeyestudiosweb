@@ -19,7 +19,16 @@ export interface PieceMeta {
 
 export interface UniverseMeta {
   title?: string;
+  /** One-liner shown on the home card and under the gallery title. */
   description?: string;
+  /**
+   * Longer write-up (lore, process, story) shown in a block at the top of the
+   * universe page. A string, or an array of strings for separate paragraphs.
+   * Leave out / empty and the block is hidden.
+   */
+  story?: string | string[];
+  /** Heading for the story block. Defaults to "Description". */
+  storyTitle?: string;
   /** File name (with extension) of the piece to use as the cover. Defaults to the first piece. */
   cover?: string;
   /** Lower numbers first on the home page. */
@@ -40,6 +49,9 @@ export interface Universe {
   dir: string;
   title: string;
   description?: string;
+  /** Story paragraphs; empty array when none. */
+  story: string[];
+  storyTitle: string;
   order: number;
   cover: Piece;
   pieces: Piece[];
@@ -61,6 +73,12 @@ export function slugify(s: string): string {
     .replace(/['’]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+}
+
+/** Normalise `story` to a list of non-empty paragraphs. */
+function paragraphs(story: string | string[] | undefined): string[] {
+  const list = Array.isArray(story) ? story : (story ?? '').split(/\n{2,}/);
+  return list.map((p) => p.trim()).filter(Boolean);
 }
 
 function stripExt(file: string): string {
@@ -100,6 +118,8 @@ function build(): Universe[] {
       dir,
       title: meta.title ?? dir,
       description: meta.description,
+      story: paragraphs(meta.story),
+      storyTitle: meta.storyTitle?.trim() || 'Description',
       order: meta.order ?? Number.POSITIVE_INFINITY,
       cover,
       pieces,

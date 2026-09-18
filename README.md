@@ -50,6 +50,10 @@ src/art/
 {
   "title": "Lilith's Gaze",
   "description": "One line shown on the home card and the gallery header.",
+  "storyTitle": "Description",
+  "story": "Longer write-up shown in a block at the top of the universe page.
+
+Blank line = new paragraph. Leave empty to hide the block.",
   "cover": "TaliaFinal.jpg",
   "order": 1,
   "pieces": {
@@ -60,6 +64,11 @@ src/art/
 ```
 
 `order` is "lower first"; anything without an order comes after, alphabetically.
+
+`story` can also be an array of strings (one per paragraph) if you prefer that over `
+
+`.
+`storyTitle` is the block's heading and defaults to "Description".
 
 ## Adding a game
 
