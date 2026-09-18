@@ -1,0 +1,72 @@
+---
+import Base from '../../layouts/Base.astro';
+import ArtGrid from '../../components/ArtGrid.astro';
+import Lightbox from '../../components/Lightbox.astro';
+import { universes } from '../../lib/art';
+
+export function getStaticPaths() {
+  return universes.map((u) => ({ params: { slug: u.slug }, props: { universe: u } }));
+}
+
+const { universe } = Astro.props;
+const i = universes.findIndex((u) => u.slug === universe.slug);
+const prev = universes[i - 1];
+const next = universes[i + 1];
+---
+
+<Base
+  title={universe.title}
+  description={universe.description ?? `${universe.title} — art by Grimeye Studios`}
+>
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <a href="/">Art</a>
+    <span aria-hidden="true">/</span>
+    <span>{universe.title}</span>
+  </nav>
+
+  <header class="page-head">
+    <p class="kicker">Universe · {universe.pieces.length} pieces</p>
+    <h1>{universe.title}</h1>
+    {universe.description && <p>{universe.description}</p>}
+  </header>
+
+  <ArtGrid pieces={universe.pieces} group={universe.slug} />
+
+  <nav class="pager" aria-label="Other universes">
+    {prev ? (
+      <a href={`/art/${prev.slug}/`} class="btn">
+        ‹ {prev.title}
+      </a>
+    ) : (
+      <span />
+    )}
+    {next ? (
+      <a href={`/art/${next.slug}/`} class="btn">
+        {next.title} ›
+      </a>
+    ) : (
+      <span />
+    )}
+  </nav>
+
+  <Lightbox />
+</Base>
+
+<style>
+  .crumbs {
+    display: flex;
+    gap: 10px;
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .crumbs a:hover {
+    color: var(--red-bright);
+  }
+  .pager {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 40px;
+  }
+</style>

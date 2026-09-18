@@ -1,0 +1,148 @@
+---
+import { Image } from 'astro:assets';
+import Base from '../layouts/Base.astro';
+import { site } from '../site.config';
+import { universes } from '../lib/art';
+import { games } from '../data/games';
+import logo from '../assets/brand/logo.png';
+
+const pieceCount = universes.reduce((n, u) => n + u.pieces.length, 0);
+---
+
+<Base title="About" description={`About ${site.owner} and ${site.name}`}>
+  <section class="about">
+    <Image
+      src={logo}
+      alt={`${site.name} logo`}
+      width={220}
+      height={220}
+      densities={[1, 2]}
+      class="avatar"
+    />
+
+    <div class="text">
+      <p class="kicker">About</p>
+      <h1>{site.owner}</h1>
+      <p class="handle muted">{site.name}</p>
+
+      {site.bio ? (
+        <p class="bio">{site.bio}</p>
+      ) : (
+        <p class="bio placeholder">
+          Bio coming soon — set <code>bio</code> in <code>src/site.config.ts</code>.
+        </p>
+      )}
+
+      <ul class="stats">
+        <li>
+          <span class="n">{pieceCount}</span>
+          <span class="l">art pieces</span>
+        </li>
+        <li>
+          <span class="n">{universes.length}</span>
+          <span class="l">universes</span>
+        </li>
+        <li>
+          <span class="n">{games.length}</span>
+          <span class="l">games</span>
+        </li>
+      </ul>
+
+      <div class="links">
+        {site.socials.map((s) => (
+          <a href={s.href} class="btn" target="_blank" rel="noopener noreferrer">
+            {s.label} ↗
+          </a>
+        ))}
+        <a href={`mailto:${site.email}`} class="btn btn-primary">
+          Email me
+        </a>
+      </div>
+      <p class="email muted">{site.email}</p>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .about {
+    display: grid;
+    gap: 32px;
+    align-items: start;
+  }
+  @media (min-width: 720px) {
+    .about {
+      grid-template-columns: 220px 1fr;
+      gap: 48px;
+    }
+  }
+  .avatar {
+    width: 180px;
+    height: 180px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 22px rgb(255 31 43 / 0.4));
+  }
+  @media (min-width: 720px) {
+    .avatar {
+      width: 220px;
+      height: 220px;
+    }
+  }
+  .text h1 {
+    margin-bottom: 0.1em;
+  }
+  .handle {
+    font-family: var(--font-display);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    margin-bottom: 1.5em;
+  }
+  .bio {
+    max-width: 60ch;
+    font-size: 1.05rem;
+  }
+  .placeholder {
+    color: var(--faint);
+    border: 1px dashed var(--line-2);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+  }
+  code {
+    font-family: var(--font-display);
+    color: var(--vein);
+  }
+  .stats {
+    list-style: none;
+    margin: 24px 0;
+    padding: 0;
+    display: flex;
+    gap: 32px;
+  }
+  .stats li {
+    display: flex;
+    flex-direction: column;
+  }
+  .n {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.8rem;
+    color: var(--red-bright);
+    line-height: 1;
+  }
+  .l {
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .email {
+    font-size: 0.85rem;
+    margin-top: 12px;
+  }
+</style>

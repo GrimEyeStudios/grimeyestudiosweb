@@ -1,0 +1,125 @@
+---
+import { Image } from 'astro:assets';
+import Base from '../layouts/Base.astro';
+import { site } from '../site.config';
+import { universes } from '../lib/art';
+import logo from '../assets/brand/logo.png';
+---
+
+<Base>
+  <section class="hero">
+    <Image src={logo} alt="" width={160} height={160} densities={[1, 2]} class="hero-logo" />
+    <div>
+      <p class="kicker">Portfolio</p>
+      <h1>{site.name}</h1>
+      <p class="muted">{site.tagline}</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="kicker">Art · {universes.length} universes</p>
+    <ul class="universes">
+      {universes.map((u, i) => (
+        <li>
+          <a href={`/art/${u.slug}/`} class="card universe">
+            <Image
+              src={u.cover.image}
+              alt={u.cover.title}
+              widths={[480, 800, 1200]}
+              sizes="(max-width: 719px) 100vw, (max-width: 1100px) 50vw, 600px"
+              format="webp"
+              loading={i < 4 ? 'eager' : 'lazy'}
+            />
+            <span class="body">
+              <span class="title">{u.title}</span>
+              <span class="meta muted">
+                {u.pieces.length} {u.pieces.length === 1 ? 'piece' : 'pieces'}
+              </span>
+              {u.description && <span class="desc muted">{u.description}</span>}
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
+    {universes.length === 0 && (
+      <p class="muted">
+        No art yet. Drop images into <code>src/art/&lt;Universe Name&gt;/</code> and rebuild.
+      </p>
+    )}
+  </section>
+</Base>
+
+<style>
+  .hero {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    margin-bottom: 48px;
+  }
+  .hero-logo {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 18px rgb(255 31 43 / 0.45));
+    flex-shrink: 0;
+  }
+  .hero h1 {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.2em;
+  }
+  .hero p {
+    margin: 0;
+  }
+  @media (min-width: 720px) {
+    .hero-logo {
+      width: 160px;
+      height: 160px;
+    }
+  }
+
+  .universes {
+    list-style: none;
+    margin: 16px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  }
+  .universe {
+    display: block;
+    height: 100%;
+  }
+  .universe img {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    background: var(--bg-3);
+    transition: transform 0.3s ease;
+  }
+  .universe:hover img {
+    transform: scale(1.03);
+  }
+  .body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 16px 16px;
+    border-top: 1px solid var(--line);
+  }
+  .title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.15rem;
+    letter-spacing: 0.04em;
+  }
+  .meta {
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .desc {
+    font-size: 0.9rem;
+    margin-top: 4px;
+  }
+</style>

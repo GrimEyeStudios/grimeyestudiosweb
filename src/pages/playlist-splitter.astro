@@ -1,0 +1,10 @@
+---
+import Base from '../layouts/Base.astro';
+import AppEmbed from '../components/AppEmbed.astro';
+import { site } from '../site.config';
+const app = site.apps.splitter;
+---
+
+<Base title={app.title} description={app.blurb} wide>
+  <AppEmbed app={app} />
+</Base>

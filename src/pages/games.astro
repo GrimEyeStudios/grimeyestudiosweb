@@ -1,0 +1,193 @@
+---
+import { Image, getImage } from 'astro:assets';
+import Base from '../layouts/Base.astro';
+import Lightbox from '../components/Lightbox.astro';
+import { games } from '../data/games';
+import { slugify } from '../lib/art';
+
+const cards = await Promise.all(
+  games.map(async (g) => ({
+    game: g,
+    slug: slugify(g.title),
+    shots: await Promise.all(
+      g.screenshots.map(async (s) => ({
+        image: s,
+        full: await getImage({ src: s, width: 1920, format: 'webp', quality: 85 }),
+      })),
+    ),
+  })),
+);
+---
+
+<Base title="Games" description="Games by Grimeye Studios on itch.io">
+  <header class="page-head">
+    <p class="kicker">Games · {games.length} titles</p>
+    <h1>Games</h1>
+    <p>Prototypes, jam builds and released tools. Everything lives on itch.io.</p>
+  </header>
+
+  <ul class="games">
+    {cards.map(({ game, slug, shots }, i) => (
+      <li class="card game" id={slug}>
+        <div class="cover">
+          {game.cover ? (
+            <Image
+              src={game.cover}
+              alt={`${game.title} cover`}
+              widths={[480, 800]}
+              sizes="(max-width: 719px) 100vw, 360px"
+              format="webp"
+              loading={i < 3 ? 'eager' : 'lazy'}
+            />
+          ) : (
+            <div class="cover-empty" aria-hidden="true">
+              <span>No cover yet</span>
+            </div>
+          )}
+        </div>
+
+        <div class="body">
+          <div class="tags">
+            <span class="tag tag-red">{game.status}</span>
+            {game.genre && <span class="tag">{game.genre}</span>}
+            {game.platforms.map((p) => (
+              <span class="tag">{p}</span>
+            ))}
+            {game.madeWith && <span class="tag">{game.madeWith}</span>}
+          </div>
+          <h2>{game.title}</h2>
+          {game.team && <p class="team muted">{game.team}</p>}
+          <p class="blurb">{game.blurb}</p>
+
+          {shots.length > 0 ? (
+            <ul class="shots">
+              {shots.map(({ image, full }, j) => (
+                <li>
+                  <a
+                    href={full.src}
+                    data-lightbox={slug}
+                    data-title={`${game.title} — screenshot ${j + 1}`}
+                  >
+                    <Image
+                      src={image}
+                      alt={`${game.title} screenshot ${j + 1}`}
+                      width={320}
+                      height={180}
+                      format="webp"
+                      loading="lazy"
+                    />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p class="no-shots muted">Screenshots coming soon.</p>
+          )}
+
+          <a href={game.url} class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+            View on itch.io ↗
+          </a>
+        </div>
+      </li>
+    ))}
+  </ul>
+
+  <Lightbox />
+</Base>
+
+<style>
+  .games {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 20px;
+  }
+  .game {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 720px) {
+    .game {
+      grid-template-columns: 360px 1fr;
+    }
+  }
+  .cover img,
+  .cover-empty {
+    width: 100%;
+    height: 100%;
+    min-height: 200px;
+    object-fit: cover;
+    background: var(--bg-3);
+  }
+  .cover-empty {
+    display: grid;
+    place-items: center;
+    color: var(--faint);
+    font-family: var(--font-display);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    background:
+      repeating-linear-gradient(135deg, transparent 0 12px, rgb(255 255 255 / 0.02) 12px 24px),
+      var(--bg-3);
+  }
+  .body {
+    padding: 20px 22px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .body h2 {
+    margin: 4px 0 0;
+  }
+  .team {
+    font-size: 0.85rem;
+    margin: -6px 0 0;
+  }
+  .blurb {
+    max-width: 65ch;
+  }
+  .shots {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scrollbar-width: thin;
+  }
+  .shots a {
+    display: block;
+    flex-shrink: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition:
+      border-color 0.15s,
+      box-shadow 0.15s;
+  }
+  .shots a:hover {
+    border-color: var(--red-bright);
+    box-shadow: var(--glow);
+  }
+  .shots img {
+    width: 200px;
+    height: 112px;
+    object-fit: cover;
+  }
+  .no-shots {
+    font-size: 0.85rem;
+    margin: 0;
+  }
+  .btn {
+    align-self: flex-start;
+    margin-top: 6px;
+  }
+</style>

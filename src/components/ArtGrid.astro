@@ -1,0 +1,89 @@
+---
+/**
+ * Responsive gallery grid. Thumbnails are optimised to ~800px wide; the link
+ * target is a ~2000px optimised copy for the lightbox.
+ */
+import { Image, getImage } from 'astro:assets';
+import type { Piece } from '../lib/art';
+
+interface Props {
+  pieces: Piece[];
+  group: string;
+}
+
+const { pieces, group } = Astro.props;
+
+const items = await Promise.all(
+  pieces.map(async (p) => ({
+    piece: p,
+    full: await getImage({ src: p.image, width: 2000, format: 'webp', quality: 88 }),
+  })),
+);
+---
+
+<ul class="grid">
+  {items.map(({ piece, full }, i) => (
+    <li class="cell" style={`--ar: ${piece.image.width} / ${piece.image.height}`}>
+      <a
+        href={full.src}
+        data-lightbox={group}
+        data-title={piece.title}
+        data-caption={piece.caption}
+        class="card"
+      >
+        <Image
+          src={piece.image}
+          alt={piece.title}
+          widths={[400, 800, 1200]}
+          sizes="(max-width: 719px) 100vw, (max-width: 1100px) 50vw, 400px"
+          format="webp"
+          loading={i < 6 ? 'eager' : 'lazy'}
+        />
+        <span class="label">
+          <span class="title">{piece.title}</span>
+          {piece.caption && <span class="caption muted">{piece.caption}</span>}
+        </span>
+      </a>
+    </li>
+  ))}
+</ul>
+
+<style>
+  .grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  }
+  .cell a {
+    display: block;
+  }
+  .cell img {
+    width: 100%;
+    aspect-ratio: var(--ar, 4 / 3);
+    object-fit: cover;
+    background: var(--bg-3);
+    transition: transform 0.25s ease;
+  }
+  .cell a:hover img {
+    transform: scale(1.02);
+  }
+  .label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 14px 12px;
+    border-top: 1px solid var(--line);
+  }
+  .title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.9rem;
+    letter-spacing: 0.04em;
+  }
+  .caption {
+    font-size: 0.8rem;
+  }
+</style>

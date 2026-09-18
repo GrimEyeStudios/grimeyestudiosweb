@@ -1,0 +1,187 @@
+---
+/**
+ * One lightbox per page. Any `<a data-lightbox="<group>" href="<full image>">`
+ * opens here; prev/next cycle through links in the same group, in DOM order.
+ * Without JS the links simply open the full-size image.
+ */
+---
+
+<dialog id="lightbox" class="lightbox" aria-label="Image viewer">
+  <button class="lb-close" data-lb-close aria-label="Close">
+    ✕
+  </button>
+  <button class="lb-nav lb-prev" data-lb-prev aria-label="Previous image">
+    ‹
+  </button>
+  <figure>
+    <img alt="" />
+    <figcaption>
+      <span class="lb-title"></span>
+      <span class="lb-caption muted"></span>
+      <span class="lb-count muted"></span>
+    </figcaption>
+  </figure>
+  <button class="lb-nav lb-next" data-lb-next aria-label="Next image">
+    ›
+  </button>
+</dialog>
+
+<script>
+  const dialog = document.getElementById('lightbox') as HTMLDialogElement | null;
+  if (dialog) {
+    const img = dialog.querySelector('img')!;
+    const title = dialog.querySelector('.lb-title')!;
+    const caption = dialog.querySelector('.lb-caption')!;
+    const count = dialog.querySelector('.lb-count')!;
+    let items: HTMLAnchorElement[] = [];
+    let index = 0;
+
+    const show = (i: number) => {
+      index = (i + items.length) % items.length;
+      const a = items[index]!;
+      img.src = a.href;
+      img.alt = a.dataset.title ?? '';
+      title.textContent = a.dataset.title ?? '';
+      caption.textContent = a.dataset.caption ?? '';
+      count.textContent = items.length > 1 ? `${index + 1} / ${items.length}` : '';
+      // Warm the neighbours so next/prev feel instant.
+      for (const j of [index + 1, index - 1]) {
+        const n = items[(j + items.length) % items.length];
+        if (n) new Image().src = n.href;
+      }
+    };
+
+    document.addEventListener('click', (e) => {
+      const a = (e.target as Element).closest<HTMLAnchorElement>('a[data-lightbox]');
+      if (!a) return;
+      e.preventDefault();
+      const group = a.dataset.lightbox;
+      items = Array.from(
+        document.querySelectorAll<HTMLAnchorElement>(`a[data-lightbox="${group}"]`),
+      );
+      show(items.indexOf(a));
+      dialog.showModal();
+    });
+
+    dialog.querySelector('[data-lb-prev]')!.addEventListener('click', () => show(index - 1));
+    dialog.querySelector('[data-lb-next]')!.addEventListener('click', () => show(index + 1));
+    dialog.querySelector('[data-lb-close]')!.addEventListener('click', () => dialog.close());
+    // Click on the backdrop (outside the figure) closes.
+    dialog.addEventListener('click', (e) => {
+      if (e.target === dialog) dialog.close();
+    });
+    dialog.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') show(index - 1);
+      if (e.key === 'ArrowRight') show(index + 1);
+    });
+    dialog.addEventListener('close', () => {
+      img.removeAttribute('src');
+    });
+  }
+</script>
+
+<style>
+  .lightbox {
+    border: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    background: transparent;
+    color: var(--text);
+  }
+  .lightbox::backdrop {
+    background: rgb(4 4 6 / 0.92);
+    backdrop-filter: blur(6px);
+  }
+  .lightbox[open] {
+    display: grid;
+    grid-template-columns: 56px 1fr 56px;
+    align-items: center;
+  }
+  figure {
+    margin: 0;
+    grid-column: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    max-height: 100dvh;
+    padding: 24px 0;
+    pointer-events: none;
+  }
+  img {
+    max-width: 100%;
+    max-height: calc(100dvh - 110px);
+    object-fit: contain;
+    border-radius: var(--radius);
+    box-shadow: 0 20px 60px rgb(0 0 0 / 0.6);
+    pointer-events: auto;
+  }
+  figcaption {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    justify-content: center;
+    font-size: 0.9rem;
+    text-align: center;
+  }
+  .lb-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+  }
+  .lb-nav,
+  .lb-close {
+    appearance: none;
+    border: 1px solid var(--line-2);
+    background: rgb(18 18 22 / 0.8);
+    color: var(--text);
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    font-size: 1.6rem;
+    line-height: 1;
+    cursor: pointer;
+    justify-self: center;
+    transition:
+      border-color 0.15s,
+      box-shadow 0.15s;
+  }
+  .lb-nav:hover,
+  .lb-close:hover {
+    border-color: var(--red-bright);
+    box-shadow: var(--glow);
+  }
+  .lb-prev {
+    grid-column: 1;
+  }
+  .lb-next {
+    grid-column: 3;
+  }
+  .lb-close {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    font-size: 1rem;
+  }
+  @media (max-width: 719px) {
+    .lightbox[open] {
+      grid-template-columns: 1fr;
+    }
+    figure {
+      grid-column: 1;
+      padding: 56px 12px 72px;
+    }
+    .lb-nav {
+      position: fixed;
+      bottom: 16px;
+    }
+    .lb-prev {
+      left: 16px;
+    }
+    .lb-next {
+      right: 16px;
+    }
+  }
+</style>

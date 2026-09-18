@@ -1,0 +1,94 @@
+---
+/**
+ * Embeds one of the web apps from site.config in a full-height iframe, with an
+ * "open full app" escape hatch. While `status` is 'coming-soon' it renders a
+ * placeholder instead — no broken frame on a domain that doesn't resolve yet.
+ */
+import type { AppConfig } from '../site.config';
+
+interface Props {
+  app: AppConfig;
+}
+const { app } = Astro.props;
+const live = app.status === 'live';
+---
+
+<header class="app-head">
+  <div>
+    <p class="kicker">{live ? 'Web app' : 'Web app · coming soon'}</p>
+    <h1>{app.title}</h1>
+    <p class="muted">{app.blurb}</p>
+  </div>
+  {live && (
+    <a href={app.url} class="btn" target="_blank" rel="noopener noreferrer">
+      Open full app ↗
+    </a>
+  )}
+</header>
+
+{live ? (
+  <div class="frame-wrap">
+    <iframe
+      src={app.url}
+      title={app.title}
+      loading="eager"
+      allow="clipboard-write"
+      referrerpolicy="strict-origin-when-cross-origin"
+    ></iframe>
+  </div>
+) : (
+  <div class="placeholder card">
+    <p class="kicker">In development</p>
+    <p>
+      <strong>{app.title}</strong> is being built right now. When it ships it will live at{' '}
+      <code>{app.url.replace('https://', '')}</code> and appear here.
+    </p>
+  </div>
+)}
+
+<style>
+  .app-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    max-width: var(--max);
+    margin: 0 auto 20px;
+  }
+  .app-head p {
+    margin: 0;
+    max-width: 60ch;
+  }
+  .app-head h1 {
+    margin-bottom: 0.25em;
+  }
+  .frame-wrap {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--bg-2);
+    height: calc(100dvh - var(--nav-h) - 180px);
+    min-height: 560px;
+  }
+  iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: var(--bg-2);
+  }
+  .placeholder {
+    max-width: 640px;
+    margin: 48px auto 0;
+    padding: 32px;
+    text-align: center;
+  }
+  .placeholder p:last-child {
+    margin: 0;
+  }
+  code {
+    font-family: var(--font-display);
+    color: var(--vein);
+  }
+</style>

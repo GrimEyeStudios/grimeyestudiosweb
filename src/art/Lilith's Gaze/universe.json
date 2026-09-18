@@ -1,0 +1,17 @@
+{
+  "title": "Lilith's Gaze",
+  "description": "Character work for the Lilith's Gaze setting — Talia from first sketch to final render.",
+  "cover": "TaliaFinal.jpg",
+  "order": 1,
+  "pieces": {
+    "TaliaFinal.jpg": { "title": "Talia", "caption": "Final render", "order": 1 },
+    "TaliaFinalBright.jpg": { "title": "Talia (bright)", "caption": "Final render, lit variant", "order": 2 },
+    "TaliaDetail.jpg": { "title": "Talia — detail pass", "order": 3 },
+    "TaliaBasicColorRed.jpg": { "title": "Talia — flat colour (red)", "order": 4 },
+    "TaliaBasicColorPurple.jpg": { "title": "Talia — flat colour (purple)", "order": 5 },
+    "TaliaOutline.jpg": { "title": "Talia — line art", "order": 6 },
+    "Talia Sketch.jpg": { "title": "Talia — pencil sketch", "order": 7 },
+    "Throne Sketch.jpg": { "title": "Throne — pencil sketch", "order": 8 },
+    "Chibi Sketch.jpg": { "title": "Chibi — pencil sketch", "order": 9 }
+  }
+}
