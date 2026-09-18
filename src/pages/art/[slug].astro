@@ -30,6 +30,15 @@ const next = universes[i + 1];
     {universe.description && <p>{universe.description}</p>}
   </header>
 
+  {universe.story.length > 0 && (
+    <section class="story card">
+      <h2>{universe.storyTitle}</h2>
+      {universe.story.map((p) => (
+        <p>{p}</p>
+      ))}
+    </section>
+  )}
+
   <ArtGrid pieces={universe.pieces} group={universe.slug} />
 
   <nav class="pager" aria-label="Other universes">
@@ -53,6 +62,28 @@ const next = universes[i + 1];
 </Base>
 
 <style>
+  .story {
+    padding: 22px 26px 12px;
+    margin-bottom: 32px;
+    max-width: 75ch;
+    border-left: 3px solid var(--red);
+  }
+  .story:hover {
+    border-color: var(--line);
+    border-left-color: var(--red);
+    box-shadow: none;
+  }
+  .story h2 {
+    font-size: 0.8rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--red-bright);
+    margin-bottom: 0.9em;
+  }
+  .story p {
+    color: var(--text);
+    line-height: 1.7;
+  }
   .crumbs {
     display: flex;
     gap: 10px;
