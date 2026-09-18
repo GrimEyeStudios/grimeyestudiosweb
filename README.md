@@ -88,20 +88,20 @@ to run inside an iframe — that's why the "Open full app ↗" button is always 
 
 ### One-time setup
 
-1. **Create the GitHub repo** (e.g. `grimeyestudios`), push this folder to `main`.
+1. **Create the GitHub repo** (`GrimEyeStudios/grimeyestudiosweb`), push this folder to `main`.
 2. **Repo → Settings → Pages → Build and deployment → Source: "GitHub Actions".**
 3. **Repo → Settings → Pages → Custom domain:** `grimeyestudios.com` → Save. Tick
    **Enforce HTTPS** once the DNS check passes (can take up to an hour; the cert is automatic).
 4. **GoDaddy DNS** (My Products → your domain → DNS → Manage zones). Delete any existing `A` record
    for `@` and the `CNAME` for `www` that GoDaddy parked there, then add:
 
-   | Type  | Name | Value                              | TTL |
-   | ----- | ---- | ---------------------------------- | --- |
-   | A     | @    | 185.199.108.153                    | 600 |
-   | A     | @    | 185.199.109.153                    | 600 |
-   | A     | @    | 185.199.110.153                    | 600 |
-   | A     | @    | 185.199.111.153                    | 600 |
-   | CNAME | www  | `<your-github-username>.github.io` | 600 |
+   | Type  | Name | Value                    | TTL |
+   | ----- | ---- | ------------------------ | --- |
+   | A     | @    | 185.199.108.153          | 600 |
+   | A     | @    | 185.199.109.153          | 600 |
+   | A     | @    | 185.199.110.153          | 600 |
+   | A     | @    | 185.199.111.153          | 600 |
+   | CNAME | www  | grimeyestudios.github.io | 600 |
 
    `www.grimeyestudios.com` then redirects to the apex automatically.
 
