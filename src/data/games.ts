@@ -34,6 +34,31 @@ export interface Game {
 
 export const games: Game[] = [
   {
+    title: 'Fast Food Frenzy',
+    blurb:
+      "The world is overrun by mutated fast food and your boss isn't coming in today. Pick one of four classes and defend the restaurant, solo or with other staff. Inspired by Killing Floor 2 and CoD Zombies.",
+    url: 'https://stepp-n.itch.io/fast-food-frenzy',
+    status: 'In development',
+    genre: 'Shooter / Survival',
+    platforms: ['Windows'],
+    team: 'Team project (7 devs)',
+    cover: fffCover,
+    screenshots: [fff1, fff2, fff3, fff4, fff5],
+  },
+  {
+    title: 'Sprouting Hope',
+    blurb:
+      "A cozy pixel-art farming game. You're handed untouched land and two locals — a restaurant owner and an aid worker — who need your crops to feed all kinds of people.",
+    url: 'https://xentios.itch.io/sprouting-hope',
+    status: 'Prototype',
+    genre: 'Farming / RPG',
+    platforms: ['Windows'],
+    madeWith: 'Unity',
+    team: 'Team project (8 devs)',
+    cover: shCover,
+    screenshots: [sh1, sh2, sh3],
+  },
+  {
     title: 'Customizable Wheel Spinner',
     blurb:
       'A fully-featured spin wheel you can make your own. Add options with names and images, pick from four themes, weight the odds, and let fate decide.',
@@ -66,30 +91,5 @@ export const games: Game[] = [
     platforms: ['Web'],
     madeWith: 'Unity',
     screenshots: [],
-  },
-  {
-    title: 'Fast Food Frenzy',
-    blurb:
-      "The world is overrun by mutated fast food and your boss isn't coming in today. Pick one of four classes and defend the restaurant, solo or with other staff. Inspired by Killing Floor 2 and CoD Zombies.",
-    url: 'https://stepp-n.itch.io/fast-food-frenzy',
-    status: 'In development',
-    genre: 'Shooter / Survival',
-    platforms: ['Windows'],
-    team: 'Team project (7 devs)',
-    cover: fffCover,
-    screenshots: [fff1, fff2, fff3, fff4, fff5],
-  },
-  {
-    title: 'Sprouting Hope',
-    blurb:
-      "A cozy pixel-art farming game. You're handed untouched land and two locals — a restaurant owner and an aid worker — who need your crops to feed all kinds of people.",
-    url: 'https://xentios.itch.io/sprouting-hope',
-    status: 'Prototype',
-    genre: 'Farming / RPG',
-    platforms: ['Windows'],
-    madeWith: 'Unity',
-    team: 'Team project (8 devs)',
-    cover: shCover,
-    screenshots: [sh1, sh2, sh3],
   },
 ];
