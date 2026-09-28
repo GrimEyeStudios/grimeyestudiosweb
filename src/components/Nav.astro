@@ -6,8 +6,6 @@ import logo from '../assets/brand/logo.png';
 const tabs = [
   { href: '/', label: 'Art', match: (p: string) => p === '/' || p.startsWith('/art') },
   { href: '/games', label: 'Games' },
-  { href: '/playlist-converter', label: 'Playlist Converter' },
-  { href: '/playlist-splitter', label: 'Playlist Splitter' },
   { href: '/about', label: 'About' },
 ];
 
@@ -139,11 +137,6 @@ const isActive = (t: (typeof tabs)[number]) =>
     }
     .tabs a {
       padding: 12px 10px 14px;
-    }
-    /* Fade the right edge so it's obvious the tab row scrolls. */
-    .tabs {
-      mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
-      -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
     }
   }
 </style>

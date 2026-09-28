@@ -9,11 +9,9 @@ import logo from '../assets/brand/logo.png';
 interface Props {
   title?: string;
   description?: string;
-  /** Wide pages (app embeds) drop the max-width. */
-  wide?: boolean;
 }
 
-const { title, description = site.tagline, wide = false } = Astro.props;
+const { title, description = site.tagline } = Astro.props;
 const fullTitle = title ? `${title} — ${site.name}` : site.name;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const ogImage = await getImage({ src: logo, width: 1200, height: 1200, format: 'png' });
@@ -43,15 +41,9 @@ const appleIcon = await getImage({ src: logo, width: 180, height: 180, format: '
   </head>
   <body>
     <Nav />
-    <main class:list={{ wide }}>
+    <main>
       <slot />
     </main>
     <Footer />
   </body>
 </html>
-
-<style>
-  main.wide {
-    max-width: none;
-  }
-</style>

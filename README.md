@@ -3,13 +3,11 @@
 Portfolio site for Grimeye Studios. Static [Astro](https://astro.build) site, deployed to
 GitHub Pages by GitHub Actions on every push to `main`.
 
-| Tab                | Route                  | Source                                    |
-| ------------------ | ---------------------- | ----------------------------------------- |
-| Art (home)         | `/`, `/art/<slug>/`    | `src/art/**` (auto-discovered)            |
-| Games              | `/games/`              | `src/data/games.ts` + `src/assets/games/` |
-| Playlist Converter | `/playlist-converter/` | `src/site.config.ts` → `apps.converter`   |
-| Playlist Splitter  | `/playlist-splitter/`  | `src/site.config.ts` → `apps.splitter`    |
-| About              | `/about/`              | `src/site.config.ts`                      |
+| Tab        | Route               | Source                                    |
+| ---------- | ------------------- | ----------------------------------------- |
+| Art (home) | `/`, `/art/<slug>/` | `src/art/**` (auto-discovered)            |
+| Games      | `/games/`           | `src/data/games.ts` + `src/assets/games/` |
+| About      | `/about/`           | `src/site.config.ts`                      |
 
 ## Local development
 
@@ -79,20 +77,6 @@ Add an object to the array in `src/data/games.ts` and import its images from
 
 All in `src/site.config.ts`. `bio` is empty on purpose; fill it in when ready.
 
-## Embedding the apps
-
-`src/site.config.ts` → `apps.converter` / `apps.splitter`. Each has `status: 'coming-soon'` (shows a
-placeholder) or `'live'` (embeds `url` in a full-height iframe with an "Open full app" button).
-
-For the iframe to work, the app must **allow being framed by this site**. In the Next.js app, send:
-
-```
-Content-Security-Policy: frame-ancestors 'self' https://grimeyestudios.com https://www.grimeyestudios.com
-```
-
-(and no `X-Frame-Options: DENY`). Note that OAuth sign-in popups (Spotify, Google) generally refuse
-to run inside an iframe — that's why the "Open full app ↗" button is always there.
-
 ## Deploying
 
 ### One-time setup
@@ -114,14 +98,6 @@ to run inside an iframe — that's why the "Open full app ↗" button is always 
 
    `www.grimeyestudios.com` then redirects to the apex automatically.
 
-5. Later, for the apps (one record each, pointing at wherever they're hosted — for Vercel it's
-   `cname.vercel-dns.com`):
-
-   | Type  | Name    | Value                | TTL |
-   | ----- | ------- | -------------------- | --- |
-   | CNAME | convert | cname.vercel-dns.com | 600 |
-   | CNAME | split   | cname.vercel-dns.com | 600 |
-
 ### Every deploy after that
 
 ```bash
@@ -141,12 +117,12 @@ src/
   art/                     your artwork (see "Adding art")
   assets/brand/            logo
   assets/games/            game covers + screenshots
-  components/              Nav, Footer, ArtGrid, Lightbox, AppEmbed
+  components/              Nav, Footer, ArtGrid, Lightbox
   data/games.ts            games list
   layouts/Base.astro       <head>, nav, footer, OG/favicon
   lib/art.ts               folder → universe discovery
   pages/                   one file per route
-  site.config.ts           name, bio, socials, email, app URLs
+  site.config.ts           name, bio, socials, email
   styles/global.css        design tokens (colours, fonts, spacing)
 public/CNAME               custom domain for GitHub Pages
 ```
