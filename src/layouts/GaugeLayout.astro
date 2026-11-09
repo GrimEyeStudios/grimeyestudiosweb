@@ -1,0 +1,472 @@
+---
+/**
+ * Standalone layout for Spoiler Gauge (/openings/). Shares nothing visual with the portfolio
+ * except the fonts, so it reads as its own site.
+ */
+import '../styles/openings.css';
+import { gauge } from '../openings/config';
+import { TITLE_PREFS } from '../openings/titles';
+import T from '../components/T.astro';
+import { createHash } from 'node:crypto';
+import { SUPABASE_URL } from '../openings/config';
+
+interface Props {
+  title?: string;
+  /** Japanese page title, used when the interface is in Japanese. */
+  titleJa?: string;
+  description?: string;
+  /** Show the compact search box in the header (hidden on the home page, which has a big one). */
+  headerSearch?: boolean;
+  /** Use the full window width instead of the centred 1180px column (home + anime pages). */
+  wide?: boolean;
+  /** Show the small/big card-size toggle. On by default on every page so the header stays the
+   *  same; on pages without card grids it just saves the preference for the next grid. */
+  gridToggle?: boolean;
+}
+
+const {
+  title,
+  titleJa,
+  description = gauge.tagline,
+  headerSearch = true,
+  wide = false,
+  gridToggle = true,
+} = Astro.props;
+const fullTitle = title
+  ? `${title} · ${gauge.name}`
+  : `${gauge.name} — anime OP/ED spoiler ratings`;
+const fullTitleJa = titleJa
+  ? `${titleJa} · ${gauge.nameJa}`
+  : title
+    ? fullTitle
+    : `${gauge.nameJa} — アニメOP・EDのネタバレ度`;
+const prefTitleKey = {
+  english: 'titleEn',
+  romaji: 'titleRomaji',
+  native: 'titleNative',
+} as const;
+// Picks the interface language before first paint (no flash of English): 日本語 in the title
+// toggle means a Japanese interface. The storage key must match src/openings/titles.ts. Kept
+// identical on every page so the Content-Security-Policy can allow it by hash.
+// Also applies the saved card size (data-grid) before first paint, so cards don't jump.
+const langScript = `try{var d=document.documentElement;if(localStorage.getItem('spoiler-gauge:titles')==='native'){d.lang='ja';if(d.dataset.titleJa)document.title=d.dataset.titleJa}if(localStorage.getItem('spoiler-gauge:grid')==='large')d.dataset.grid='large'}catch(e){}`;
+const langScriptHash = createHash('sha256').update(langScript).digest('base64');
+
+// Content-Security-Policy: Spoiler Gauge pages may only run this site's own scripts (plus the
+// language script above), and only talk to Supabase, AnimeThemes and AniList. Defence in depth
+// for the whole grimeyestudios.com origin. Production only: the dev server injects its own
+// scripts and websockets.
+const csp = [
+  "default-src 'self'",
+  `script-src 'self' 'sha256-${langScriptHash}'`,
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: https:",
+  "font-src 'self' data:",
+  `connect-src 'self' ${SUPABASE_URL} https://graphql.animethemes.moe https://graphql.anilist.co`,
+  "form-action 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  'upgrade-insecure-requests',
+].join('; ');
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const favicon =
+  'data:image/svg+xml,' +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#12142a"/><path d="M6 22a10 10 0 0 1 20 0" fill="none" stroke="#8b7bff" stroke-width="3" stroke-linecap="round"/><path d="M16 22l6-7" stroke="#ef4565" stroke-width="3" stroke-linecap="round"/><circle cx="16" cy="22" r="2.5" fill="#fff"/></svg>`,
+  );
+---
+
+<!doctype html>
+<html lang="en" data-title-ja={fullTitleJa}>
+  <head>
+    <meta charset="utf-8" />
+    {import.meta.env.PROD && <meta http-equiv="Content-Security-Policy" content={csp} />}
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+    <meta name="theme-color" content="#0c0d18" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={gauge.name} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <script is:inline set:html={langScript}></script>
+  </head>
+  <body class:list={['gauge', { 'gauge-wide': wide }]}>
+    <header class="g-header">
+      <div class="g-wrap g-header-inner">
+        <a
+          href={`${gauge.base}/`}
+          class="g-brand"
+          aria-label={`${gauge.name} home`}
+          data-i18n-aria-label="brandHome"
+        >
+          <svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true">
+            <path
+              d="M6 22a10 10 0 0 1 20 0"
+              fill="none"
+              stroke="var(--accent)"
+              stroke-width="3"
+              stroke-linecap="round"
+            ></path>
+            <path d="M16 22l6-7" stroke="var(--lv4)" stroke-width="3" stroke-linecap="round"></path>
+            <circle cx="16" cy="22" r="2.5" fill="currentColor"></circle>
+          </svg>
+          <span>
+            <T en={gauge.name} ja={gauge.nameJa} />
+          </span>
+        </a>
+        <div
+          class="g-title-toggle"
+          role="group"
+          aria-label="Title language"
+          data-i18n-aria-label="titleLanguage"
+        >
+          {TITLE_PREFS.map((p) => (
+            <button
+              type="button"
+              data-title-pref={p.value}
+              title={p.title}
+              data-i18n-title={prefTitleKey[p.value]}
+              aria-pressed="false"
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        {gridToggle && (
+          <div
+            class="g-title-toggle g-grid-toggle"
+            role="group"
+            aria-label="Card size"
+            data-i18n-aria-label="cardSize"
+          >
+            <button
+              type="button"
+              data-grid-pref="compact"
+              title="Small cards, more per row"
+              data-i18n-title="cardsSmall"
+              aria-label="Small cards"
+              data-i18n-aria-label="cardsSmallShort"
+              aria-pressed="true"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path
+                  fill="currentColor"
+                  d="M1 1h4v4H1zM6 1h4v4H6zM11 1h4v4h-4zM1 6h4v4H1zM6 6h4v4H6zM11 6h4v4h-4zM1 11h4v4H1zM6 11h4v4H6zM11 11h4v4h-4z"
+                />
+              </svg>
+            </button>
+            <button
+              type="button"
+              data-grid-pref="large"
+              title="Big cards, easier to read"
+              data-i18n-title="cardsLarge"
+              aria-label="Big cards"
+              data-i18n-aria-label="cardsLargeShort"
+              aria-pressed="false"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path
+                  fill="currentColor"
+                  d="M1 1h6.5v6.5H1zM8.5 1H15v6.5H8.5zM1 8.5h6.5V15H1zM8.5 8.5H15V15H8.5z"
+                />
+              </svg>
+            </button>
+          </div>
+        )}
+        {headerSearch && (
+          <form class="g-header-search" action={`${gauge.base}/`} method="get" role="search">
+            <label class="sr-only" for="hq">
+              <T en="Search anime" ja="アニメを検索" />
+            </label>
+            <input
+              id="hq"
+              name="q"
+              type="search"
+              placeholder="Search anime…"
+              data-i18n-placeholder="searchPlaceholderShort"
+              autocomplete="off"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded="false"
+              aria-controls="hq-list"
+            />
+            <ul
+              id="hq-list"
+              class="g-suggest"
+              role="listbox"
+              aria-label="Suggestions"
+              data-i18n-aria-label="suggestions"
+              hidden
+            ></ul>
+          </form>
+        )}
+        <div class="g-auth" id="g-auth" aria-live="polite"></div>
+      </div>
+    </header>
+
+    <main class="g-wrap g-main">
+      <slot />
+    </main>
+
+    <footer class="g-footer">
+      <div class="g-wrap">
+        {/* Punctuation is in {'…'} strings so the formatter can't add spaces next to links. */}
+        <p data-lang="en">
+          {'Song, artist and episode data from '}
+          <a href="https://animethemes.moe" rel="noopener">
+            AnimeThemes.moe
+          </a>
+          {'; episode counts from '}
+          <a href="https://anilist.co" rel="noopener">
+            AniList
+          </a>
+          {'. Spoiler ratings are written by the community.'}
+        </p>
+        <p data-lang="ja" lang="ja">
+          {'曲・アーティスト・使用話数のデータは'}
+          <a href="https://animethemes.moe" rel="noopener">
+            AnimeThemes.moe
+          </a>
+          {'、話数は'}
+          <a href="https://anilist.co" rel="noopener">
+            AniList
+          </a>
+          {'より。ネタバレ評価はコミュニティによるものです。'}
+        </p>
+        <p class="g-faint" data-lang="en">
+          {'A '}
+          <a href="/">Grimeye Studios</a>
+          {' project · '}
+          <a href={`${gauge.base}/privacy/`}>Privacy</a>
+          {' · '}
+          <a href={`${gauge.base}/terms/`}>Terms</a>
+        </p>
+        <p class="g-faint" data-lang="ja" lang="ja">
+          <a href="/">Grimeye Studios</a>
+          {' のプロジェクト · '}
+          <a href={`${gauge.base}/privacy/`}>プライバシー</a>
+          {' · '}
+          <a href={`${gauge.base}/terms/`}>利用規約</a>
+        </p>
+      </div>
+    </footer>
+
+    <dialog id="g-signin" class="g-dialog" aria-labelledby="g-signin-title">
+      <form method="dialog">
+        <h2 id="g-signin-title">
+          <T en="Sign in to rate" ja="ログインして評価" />
+        </h2>
+        <p class="g-muted">
+          <T
+            en="One vote per person per OP/ED. Your name is never shown next to your rating."
+            ja="OP・EDごとに1人1票です。評価の横にあなたの名前が表示されることはありません。"
+          />
+        </p>
+        <div class="g-signin-buttons">
+          <button type="button" class="g-btn g-btn-provider g-btn-discord" data-provider="discord">
+            <svg class="g-provider-logo" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.865-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"
+              ></path>
+            </svg>
+            <span>
+              <T en="Continue with Discord" ja="Discordで続ける" />
+            </span>
+          </button>
+          <button type="button" class="g-btn g-btn-provider g-btn-google" data-provider="google">
+            <svg class="g-provider-logo" viewBox="0 0 48 48" aria-hidden="true">
+              <path
+                fill="#EA4335"
+                d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+              ></path>
+              <path
+                fill="#4285F4"
+                d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+              ></path>
+              <path
+                fill="#FBBC05"
+                d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+              ></path>
+              <path
+                fill="#34A853"
+                d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+              ></path>
+            </svg>
+            <span>
+              <T en="Continue with Google" ja="Googleで続ける" />
+            </span>
+          </button>
+        </div>
+        <p class="g-faint g-signin-legal" data-lang="en">
+          By signing in you agree to the <a href={`${gauge.base}/terms/`}>terms</a> and{' '}
+          <a href={`${gauge.base}/privacy/`}>privacy policy</a>.
+        </p>
+        <p class="g-faint g-signin-legal" data-lang="ja" lang="ja">
+          ログインすると<a href={`${gauge.base}/terms/`}>利用規約</a>と
+          <a href={`${gauge.base}/privacy/`}>プライバシーポリシー</a>に同意したものとみなされます。
+        </p>
+        <button class="g-btn g-btn-ghost g-dialog-close" value="close">
+          <T en="Cancel" ja="キャンセル" />
+        </button>
+      </form>
+    </dialog>
+
+    <script>
+      import {
+        votingEnabled,
+        currentUser,
+        onAuthChange,
+        signIn,
+        signOut,
+        userLabel,
+        userAvatar,
+      } from '../openings/db';
+      import { h, mount } from '../openings/dom';
+      import { gauge } from '../openings/config';
+      import { setupSuggest } from '../openings/suggest';
+      import { getTitlePref, setTitlePref, type TitlePref } from '../openings/titles';
+      import { t, applyI18n } from '../openings/i18n';
+
+      applyI18n();
+      import type { User } from '@supabase/supabase-js';
+
+      const slot = document.getElementById('g-auth');
+
+      let last: string | undefined;
+      function render(user: User | null) {
+        if (!votingEnabled) return mount(slot);
+        // getSession() and onAuthStateChange both report the initial state; only react to changes.
+        const key = user?.id ?? 'anon';
+        if (key === last) return;
+        last = key;
+        if (user) {
+          const avatar = userAvatar(user);
+          mount(
+            slot,
+            h(
+              'a',
+              { class: 'g-user-link', href: `${gauge.base}/profile/`, title: t('yourProfile') },
+              avatar
+                ? h('img', {
+                    class: 'g-avatar',
+                    src: avatar,
+                    alt: '',
+                    referrerpolicy: 'no-referrer',
+                  })
+                : null,
+              h('span', { class: 'g-user' }, userLabel(user)),
+            ),
+            h(
+              'button',
+              { class: 'g-btn g-btn-ghost', type: 'button', onclick: () => signOut() },
+              t('signOut'),
+            ),
+          );
+        } else {
+          mount(
+            slot,
+            h(
+              'button',
+              {
+                class: 'g-btn g-btn-ghost',
+                type: 'button',
+                'data-signin': '',
+                onclick: () => openSignIn(),
+              },
+              t('signIn'),
+            ),
+          );
+        }
+        window.dispatchEvent(new CustomEvent('gauge:auth', { detail: user }));
+      }
+
+      function openSignIn() {
+        const dlg = document.getElementById('g-signin') as HTMLDialogElement | null;
+        dlg?.showModal();
+      }
+      // Anime page buttons call this too.
+      (window as unknown as { gaugeSignIn: () => void }).gaugeSignIn = openSignIn;
+
+      document.querySelectorAll<HTMLButtonElement>('#g-signin [data-provider]').forEach((btn) =>
+        btn.addEventListener('click', () => {
+          btn.disabled = true;
+          signIn(btn.dataset.provider as 'discord' | 'google');
+        }),
+      );
+      // Coming back with the browser's Back button restores the page from cache; re-enable buttons.
+      window.addEventListener('pageshow', () =>
+        document
+          .querySelectorAll<HTMLButtonElement>('#g-signin [data-provider]')
+          .forEach((b) => (b.disabled = false)),
+      );
+      // Clicking outside the popup (on the dimmed backdrop) closes it. Backdrop clicks are reported
+      // on the <dialog> itself, so compare against its box; padding clicks stay inside the box.
+      const dlg = document.getElementById('g-signin') as HTMLDialogElement | null;
+      dlg?.addEventListener('click', (e) => {
+        if (e.target !== dlg) return;
+        const r = dlg.getBoundingClientRect();
+        const inside =
+          e.clientX >= r.left &&
+          e.clientX <= r.right &&
+          e.clientY >= r.top &&
+          e.clientY <= r.bottom;
+        if (!inside) dlg.close();
+      });
+
+      // Title language toggle (English / Romaji / Japanese), remembered per browser.
+      const prefButtons = [...document.querySelectorAll<HTMLButtonElement>('[data-title-pref]')];
+      const markPref = (p: TitlePref) =>
+        prefButtons.forEach((b) =>
+          b.setAttribute('aria-pressed', String(b.dataset.titlePref === p)),
+        );
+      markPref(getTitlePref());
+      prefButtons.forEach((b) =>
+        b.addEventListener('click', () => {
+          const p = b.dataset.titlePref as TitlePref;
+          // Moving into or out of 日本語 changes the whole interface language: reload so every
+          // page draws itself once in the new language. EN ⇄ Romaji only swaps titles in place.
+          const languageChanges = (p === 'native') !== (getTitlePref() === 'native');
+          markPref(p);
+          setTitlePref(p);
+          if (languageChanges) location.reload();
+        }),
+      );
+
+      // Card size toggle (small = more per row, big = easier to read), remembered per browser.
+      const gridButtons = [...document.querySelectorAll<HTMLButtonElement>('[data-grid-pref]')];
+      const markGrid = () => {
+        const large = document.documentElement.dataset.grid === 'large';
+        gridButtons.forEach((b) =>
+          b.setAttribute('aria-pressed', String((b.dataset.gridPref === 'large') === large)),
+        );
+      };
+      markGrid();
+      gridButtons.forEach((b) =>
+        b.addEventListener('click', () => {
+          const large = b.dataset.gridPref === 'large';
+          if (large) document.documentElement.dataset.grid = 'large';
+          else delete document.documentElement.dataset.grid;
+          try {
+            localStorage.setItem('spoiler-gauge:grid', large ? 'large' : 'compact');
+          } catch {
+            /* not remembered, still applied */
+          }
+          markGrid();
+        }),
+      );
+
+      const hq = document.getElementById('hq') as HTMLInputElement | null;
+      const hqList = document.getElementById('hq-list');
+      if (hq && hqList) setupSuggest(hq, hqList);
+
+      currentUser().then(render);
+      onAuthChange(render);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,132 @@
+---
+import GaugeLayout from '../../layouts/GaugeLayout.astro';
+import { gauge } from '../../openings/config';
+import { site } from '../../site.config';
+
+const updated = 'November 9, 2026';
+---
+
+<GaugeLayout
+  title="Terms of service"
+  titleJa="利用規約"
+  description={`The rules for using ${gauge.name}.`}
+>
+  <article class="g-prose" data-lang="ja" lang="ja">
+    <h1>利用規約</h1>
+    <p class="g-faint">最終更新日：2026年11月9日</p>
+    <p class="g-notice">この日本語版は参考訳です。内容に違いがある場合は英語版が優先されます。</p>
+
+    <p>
+      {gauge.nameJa}を利用することで、この規約に同意したものとみなされます。{gauge.nameJa}
+      は、アニメのオープニング・エンディングのネタバレ度を評価するための無料のコミュニティツールです。
+    </p>
+
+    <h2>アカウント</h2>
+    <p>
+      ログインにはDiscordまたはGoogleを使うため、それらのサービスの規約や年齢制限も適用されます。1人につき1アカウントです。評価を水増しするために複数のアカウントを使わないでください。
+    </p>
+
+    <h2>評価について</h2>
+    <ul>
+      <li>初めて見る人が実際にネタバレを受けるかどうかを基準に、正直に評価してください。</li>
+      <li>複数アカウントなどの方法で数値を操作しないでください。</li>
+    </ul>
+    <p>
+      あなたの評価は、サイトに表示される合計値に反映されます。この規約に違反する評価は削除されることがあり、違反を繰り返すアカウントは予告なく利用停止になる場合があります。
+    </p>
+
+    <h2>アニメ・曲の情報</h2>
+    <p>
+      タイトル、カバー画像、曲やアーティストの情報は
+      <a href="https://animethemes.moe" rel="noopener">
+        AnimeThemes.moe
+      </a>{' '}
+      と
+      <a href="https://anilist.co" rel="noopener">
+        AniList
+      </a>
+      から取得しています。カバー画像や楽曲の権利は各権利者に帰属します。{gauge.nameJa}
+      は、いかなる制作会社・レーベル、またこれらのサービスとも提携していません。
+    </p>
+
+    <h2>保証の免責</h2>
+    <p>
+      ネタバレ評価はコミュニティの意見であり、事実ではありません。「ネタバレなし」と評価されたオープニングが、あなたにとって何もネタバレしないとは保証できません。サイトは現状のまま提供され、予告なく変更・停止・終了する場合があります。
+    </p>
+
+    <h2>プライバシー</h2>
+    <p>
+      保存するデータとその削除方法については
+      <a href={`${gauge.base}/privacy/`}>プライバシーポリシー</a>をご覧ください。
+    </p>
+
+    <h2>変更について</h2>
+    <p>この規約は更新されることがあります。最新版は上部の日付で確認できます。</p>
+
+    <h2>お問い合わせ</h2>
+    <p>
+      <a href={`mailto:${site.email}`}>{site.email}</a>
+    </p>
+  </article>
+
+  <article class="g-prose" data-lang="en">
+    <h1>Terms of service</h1>
+    <p class="g-faint">Last updated {updated}</p>
+
+    <p>
+      By using {gauge.name} you agree to these terms. They're short because the site is simple: it's
+      a free community tool for rating how spoiler-heavy anime openings and endings are.
+    </p>
+
+    <h2>Your account</h2>
+    <p>
+      You sign in with Discord or Google, so their rules and age limits apply too. One person, one
+      account: don't use extra accounts to inflate ratings.
+    </p>
+
+    <h2>Rating</h2>
+    <ul>
+      <li>Rate honestly, based on what a first-time viewer would actually be spoiled on.</li>
+      <li>Don't try to game the numbers, with extra accounts or otherwise.</li>
+    </ul>
+    <p>
+      Your ratings are combined into the totals shown on the site. Ratings that break these rules
+      may be removed, and accounts that keep breaking them may be banned, without notice.
+    </p>
+
+    <h2>Anime and song information</h2>
+    <p>
+      Titles, cover art, song and artist details come from{' '}
+      <a href="https://animethemes.moe" rel="noopener">
+        AnimeThemes.moe
+      </a>{' '}
+      and{' '}
+      <a href="https://anilist.co" rel="noopener">
+        AniList
+      </a>
+      . Cover art and music belong to their respective owners; {gauge.name} isn't affiliated with
+      any studio, label, or with those services.
+    </p>
+
+    <h2>No guarantees</h2>
+    <p>
+      Spoiler ratings are community opinions, not facts. We can't promise an opening rated "no
+      spoilers" won't spoil anything for you. The site is provided as-is and may change, break or
+      shut down at any time.
+    </p>
+
+    <h2>Privacy</h2>
+    <p>
+      See the <a href={`${gauge.base}/privacy/`}>privacy policy</a> for what data we keep and how to
+      delete it.
+    </p>
+
+    <h2>Changes</h2>
+    <p>These terms may be updated; the date at the top shows the latest version.</p>
+
+    <h2>Contact</h2>
+    <p>
+      <a href={`mailto:${site.email}`}>{site.email}</a>
+    </p>
+  </article>
+</GaugeLayout>

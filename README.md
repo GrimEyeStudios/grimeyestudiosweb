@@ -77,6 +77,46 @@ Add an object to the array in `src/data/games.ts` and import its images from
 
 All in `src/site.config.ts`. `bio` is empty on purpose; fill it in when ready.
 
+## Spoiler Gauge (`/openings/`)
+
+A standalone community tool under the same domain, with its own layout (`src/layouts/GaugeLayout.astro`,
+`src/styles/openings.css`). It is not linked from the portfolio nav.
+
+| Route                           | What                                                                                             |
+| ------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `/openings/`                    | Search (`?q=`), sort (`?sort=popular\|votes`), level filter (`?levels=0,3`), endless season feed |
+| `/openings/anime/?slug=<id>`    | One anime: Openings and Endings sections, stats, votes, bookmark                                 |
+| `/openings/profile/`            | Signed-in user's bookmarks and rated anime                                                       |
+| `/openings/privacy/`, `/terms/` | Privacy policy and terms (linked from the Google consent screen)                                 |
+
+- **Anime/song data** comes live from the [AnimeThemes.moe GraphQL API](https://graphql.animethemes.moe/)
+  (titles, covers, songs, artists, episode ranges). Episode counts, anime genres and the "Most popular"
+  order come from AniList. Nothing is stored at build time, so new seasons show up automatically.
+- **Votes and bookmarks** live in Supabase (`supabase/schema.sql`). Signed-in users (Discord / Google)
+  get one rating per OP/ED: spoiler level, "safe after episode N" and song genre. Raw rows are private
+  to their author; the public only sees totals.
+- Spoiler levels and song genres: `src/openings/spoilers.ts`.
+
+### One-time Supabase setup
+
+1. **Database**: Supabase → SQL Editor → paste all of `supabase/schema.sql` → Run.
+2. **Keys**: Project Settings → API. Put the Project URL and the `anon` / publishable key in
+   `src/openings/config.ts` (both are public by design; never use the `service_role` / secret key).
+   For local-only testing you can instead put them in `.env` (see `.env.example`).
+3. **URLs**: Authentication → URL Configuration
+   - Site URL: `https://grimeyestudios.com/openings/`
+   - Redirect URLs: `https://grimeyestudios.com/openings/**` and `http://localhost:4321/openings/**`
+4. **Discord login**: create an app at <https://discord.com/developers/applications> → OAuth2.
+   Add the redirect `https://<project-ref>.supabase.co/auth/v1/callback`. Copy the Client ID and
+   Secret into Supabase → Authentication → Sign In / Providers → Discord, and enable it.
+5. **Google login**: Google Cloud Console → APIs & Services → OAuth consent screen (External), then
+   Credentials → Create OAuth client ID (Web application). Authorized redirect URI:
+   `https://<project-ref>.supabase.co/auth/v1/callback`. Paste the Client ID and Secret into
+   Supabase → Providers → Google, and enable it.
+
+**Moderation**: individual ratings are never shown on the site, but you can see and delete any row
+in Supabase → Table Editor → `theme_votes`.
+
 ## Deploying
 
 ### One-time setup

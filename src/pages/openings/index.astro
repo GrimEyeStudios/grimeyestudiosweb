@@ -1,0 +1,535 @@
+---
+import GaugeLayout from '../../layouts/GaugeLayout.astro';
+import { SPOILER_LEVELS_ALL } from '../../openings/spoilers';
+import T from '../../components/T.astro';
+---
+
+<GaugeLayout headerSearch={false} wide>
+  <section class="g-hero">
+    <h1>
+      <T en="Is this opening safe to watch?" ja="そのOP、見ても大丈夫？" />
+    </h1>
+    <p>
+      <T
+        en="Openings and endings love to show things you haven't seen yet. Find any anime and see how spoiler-heavy each OP and ED is, according to the community, and which episode to wait for."
+        ja="オープニングやエンディングには、まだ見ていない展開が映ることがよくあります。アニメを探して、各OP・EDのネタバレ度と、何話まで待てばいいかをコミュニティの評価で確認しましょう。"
+      />
+    </p>
+    <form class="g-hero-search" id="search-form" role="search" action="" method="get">
+      <label class="sr-only" for="q">
+        <T en="Search anime" ja="アニメを検索" />
+      </label>
+      <input
+        id="q"
+        name="q"
+        type="search"
+        placeholder="Search an anime: Frieren, Demon Slayer, Jujutsu Kaisen"
+        data-i18n-placeholder="homeSearchPlaceholder"
+        autocomplete="off"
+        autofocus
+      />
+      <button class="g-btn g-btn-primary" type="submit">
+        <T en="Search" ja="検索" />
+      </button>
+    </form>
+    <div class="g-sortbar">
+      <label for="sort">
+        <T en="Sort by" ja="並び替え" />
+      </label>
+      <select id="sort" name="sort">
+        <option value="season" data-i18n="sortSeason">
+          Latest season
+        </option>
+        <option value="popular" data-i18n="sortPopular">
+          Most popular
+        </option>
+        <option value="votes" data-i18n="sortVotes">
+          Most votes
+        </option>
+      </select>
+    </div>
+    <div
+      class="g-legend"
+      id="filters"
+      role="group"
+      aria-label="Filter by spoiler level"
+      data-i18n-aria-label="filterGroup"
+    >
+      {SPOILER_LEVELS_ALL.map((l) => (
+        <button
+          type="button"
+          class="g-chip g-chip-filter"
+          style={`--c:${l.color}`}
+          title={`${l.description} Click to show only anime mostly rated this way.`}
+          data-title-ja={`${l.ja.description}クリックすると、主にこの評価のアニメだけを表示します。`}
+          data-level={l.value}
+          aria-pressed="false"
+        >
+          <T en={l.label} ja={l.ja.label} />
+        </button>
+      ))}
+      <button type="button" class="g-linkish g-filter-clear" id="filter-clear" hidden>
+        <T en="Clear filter" ja="絞り込みを解除" />
+      </button>
+    </div>
+  </section>
+
+  <section class="g-section" id="results" hidden>
+    <div class="g-section-head">
+      <h2 id="results-title"></h2>
+      <span class="g-muted" id="results-count"></span>
+    </div>
+    <div class="g-grid" id="results-grid"></div>
+  </section>
+
+  <div id="browse">
+    <div id="feed"></div>
+    <div id="feed-sentinel" aria-hidden="true"></div>
+    <div class="g-feed-status" id="feed-status" aria-live="polite"></div>
+  </div>
+</GaugeLayout>
+
+<script>
+  import {
+    searchAnime,
+    seasonAnime,
+    popularAnimePage,
+    animeBySlugs,
+    currentSeason,
+    previousSeason,
+    seasonName,
+    popularityBySlugs,
+    type AnimeCard,
+    type SeasonRef,
+  } from '../../openings/animethemes';
+  import { popularAnime, ratedAnimeByLevel, votingEnabled } from '../../openings/db';
+  import { SPOILER_LEVELS } from '../../openings/spoilers';
+  import { t, lang } from '../../openings/i18n';
+
+  // Chip tooltips have a Japanese version in data-title-ja.
+  if (lang === 'ja')
+    document
+      .querySelectorAll<HTMLElement>('[data-title-ja]')
+      .forEach((el) => (el.title = el.dataset.titleJa!));
+  import { animeCard, colorCards, skeletonCards } from '../../openings/cards';
+  import { $, h, mount } from '../../openings/dom';
+
+  type Sort = 'season' | 'popular' | 'votes';
+  const SORTS: Sort[] = ['season', 'popular', 'votes'];
+  const OLDEST_YEAR = 1960;
+
+  const input = $('#q') as HTMLInputElement;
+  const sortSelect = $('#sort') as HTMLSelectElement;
+  const results = $('#results')!;
+  const browse = $('#browse')!;
+  const resultsGrid = $('#results-grid')!;
+  const feed = $('#feed')!;
+  const sentinel = $('#feed-sentinel')!;
+  const status = $('#feed-status')!;
+  const filterButtons = [...document.querySelectorAll<HTMLButtonElement>('#filters [data-level]')];
+  const clearBtn = $('#filter-clear')!;
+
+  // ---------------------------------------------------------------------------------------------
+  // URL state: ?q=…&sort=…&levels=0,3
+  // ---------------------------------------------------------------------------------------------
+  const params = new URLSearchParams(location.search);
+  let sort: Sort = SORTS.includes(params.get('sort') as Sort)
+    ? (params.get('sort') as Sort)
+    : 'season';
+  const levels = new Set(
+    (params.get('levels') ?? '')
+      .split(',')
+      .filter((x) => /^[0-4]$/.test(x))
+      .map(Number),
+  );
+  sortSelect.value = sort;
+
+  function syncUrl() {
+    const url = new URL(location.href);
+    const q = input.value.trim();
+    if (q) url.searchParams.set('q', q);
+    else url.searchParams.delete('q');
+    if (sort !== 'season') url.searchParams.set('sort', sort);
+    else url.searchParams.delete('sort');
+    if (levels.size) url.searchParams.set('levels', [...levels].sort().join(','));
+    else url.searchParams.delete('levels');
+    history.replaceState(null, '', url);
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // Level filter
+  // ---------------------------------------------------------------------------------------------
+  const filtering = () => levels.size > 0;
+
+  function cardVisible(card: HTMLElement) {
+    if (!filtering()) return true;
+    const lv = card.dataset.level;
+    return lv !== undefined && lv !== 'none' && levels.has(Number(lv));
+  }
+
+  /** Shows/hides cards (and empty season sections) for the current filter. */
+  function applyFilter() {
+    for (const card of document.querySelectorAll<HTMLElement>(
+      '#feed .g-card[data-slug], #results-grid .g-card[data-slug]',
+    ))
+      card.hidden = !cardVisible(card);
+    for (const section of feed.querySelectorAll<HTMLElement>('.g-feed-section'))
+      section.hidden = !section.querySelector('.g-card[data-slug]:not([hidden])');
+    updateResultsCount();
+  }
+
+  function renderFilterButtons() {
+    for (const b of filterButtons)
+      b.setAttribute('aria-pressed', String(levels.has(Number(b.dataset.level))));
+    $('#filters')!.classList.toggle('active', filtering());
+    clearBtn.hidden = !filtering();
+  }
+
+  if (!votingEnabled) {
+    filterButtons.forEach((b) => (b.disabled = true));
+    levels.clear();
+  }
+
+  function onFilterChange() {
+    renderFilterButtons();
+    syncUrl();
+    applyFilter(); // search results are filtered in place
+    resetFeed(); // the browse feed switches source (see filteredBatch)
+  }
+  filterButtons.forEach((b) =>
+    b.addEventListener('click', () => {
+      const lv = Number(b.dataset.level);
+      if (levels.has(lv)) levels.delete(lv);
+      else levels.add(lv);
+      onFilterChange();
+    }),
+  );
+  clearBtn.addEventListener('click', () => {
+    levels.clear();
+    onFilterChange();
+  });
+  renderFilterButtons();
+
+  // ---------------------------------------------------------------------------------------------
+  // Search
+  // ---------------------------------------------------------------------------------------------
+  let searchSeq = 0;
+  let resultsTotal = 0;
+
+  function updateResultsCount() {
+    if (results.hidden) return;
+    const shown = resultsGrid.querySelectorAll('.g-card[data-slug]:not([hidden])').length;
+    $('#results-count')!.textContent = filtering()
+      ? t('resultsMatch', { shown, n: resultsTotal })
+      : t('anime', { n: resultsTotal });
+    const empty = resultsGrid.querySelector('.g-filter-empty');
+    if (filtering() && resultsTotal && !shown) {
+      if (!empty)
+        resultsGrid.append(
+          h(
+            'p',
+            { class: 'g-empty g-filter-empty', style: 'grid-column:1/-1' },
+            t('noFilterMatches'),
+          ),
+        );
+    } else empty?.remove();
+  }
+
+  const seasonRank = (a: AnimeCard) =>
+    (a.year ?? 0) * 10 + ['Winter', 'Spring', 'Summer', 'Fall'].indexOf(a.seasonLocalized ?? '');
+
+  async function runSearch(q: string) {
+    q = q.trim();
+    syncUrl();
+    if (!q) {
+      results.hidden = true;
+      browse.hidden = false;
+      if (!feed.childElementCount) resetFeed();
+      else maybeLoadMore();
+      return;
+    }
+    results.hidden = false;
+    browse.hidden = true;
+    $('#results-title')!.textContent = t('resultsFor', { q });
+    $('#results-count')!.textContent = '';
+    mount(resultsGrid, skeletonCards(6));
+
+    const mine = ++searchSeq;
+    try {
+      let list = await searchAnime(q);
+      if (mine !== searchSeq) return;
+      resultsTotal = list.length;
+      // "Most popular" keeps the search's own best-match order.
+      if (sort === 'season') list = [...list].sort((a, b) => seasonRank(b) - seasonRank(a));
+      const cards = list.map((a) => animeCard(a));
+      if (!list.length) {
+        mount(
+          resultsGrid,
+          h('p', { class: 'g-empty', style: 'grid-column:1/-1' }, t('nothingFound')),
+        );
+        updateResultsCount();
+        return;
+      }
+      mount(resultsGrid, cards);
+      if (filtering()) cards.forEach((c) => (c.hidden = true)); // until levels are known
+      updateResultsCount();
+      await colorCards(cards);
+      if (mine !== searchSeq) return;
+      if (sort === 'votes')
+        resultsGrid.append(
+          ...cards.sort((a, b) => Number(b.dataset.total ?? 0) - Number(a.dataset.total ?? 0)),
+        );
+      applyFilter();
+    } catch (e) {
+      if (mine !== searchSeq) return;
+      mount(
+        resultsGrid,
+        h(
+          'p',
+          { class: 'g-empty', style: 'grid-column:1/-1' },
+          t('searchFailed', { msg: (e as Error).message }),
+        ),
+      );
+    }
+  }
+
+  let timer: number | undefined;
+  input.addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = window.setTimeout(() => runSearch(input.value), 350);
+  });
+  $('#search-form')!.addEventListener('submit', (e) => {
+    e.preventDefault();
+    clearTimeout(timer);
+    runSearch(input.value);
+  });
+
+  // ---------------------------------------------------------------------------------------------
+  // Browse feed (infinite scroll)
+  // ---------------------------------------------------------------------------------------------
+  interface Batch {
+    title: string;
+    list: AnimeCard[];
+    sub?: (a: AnimeCard) => string | undefined;
+    done: boolean;
+  }
+
+  let feedGen = 0;
+  let loading = false;
+  let done = false;
+  let cursor: {
+    season: SeasonRef;
+    page: number;
+    offset: number;
+    ratedDone: boolean;
+    rated: Set<string>;
+    /** Filter mode: the matching anime not yet shown, already sorted. */
+    filtered?: AnimeCard[];
+    filteredTotals?: Map<string, number>;
+    filteredTitle?: string;
+  };
+
+  /**
+   * With a spoiler-level filter on, the feed shows every rated anime whose majority level matches
+   * (straight from the database), sorted by the dropdown, instead of scanning season by season.
+   */
+  async function filteredBatch(): Promise<Batch> {
+    if (!cursor.filtered) {
+      const rows = await ratedAnimeByLevel([...levels]);
+      const totals = new Map(rows.map((r) => [r.anime_slug, r.total]));
+      const slugs = rows.map((r) => r.anime_slug);
+      const list: AnimeCard[] = [];
+      for (let i = 0; i < slugs.length; i += 25)
+        list.push(...(await animeBySlugs(slugs.slice(i, i + 25))));
+      const byVotes = (a: AnimeCard, b: AnimeCard) =>
+        (totals.get(b.slug) ?? 0) - (totals.get(a.slug) ?? 0);
+      if (sort === 'season') list.sort((a, b) => seasonRank(b) - seasonRank(a) || byVotes(a, b));
+      else if (sort === 'popular') {
+        const pop = await popularityBySlugs(list.map((a) => a.slug));
+        list.sort((a, b) => (pop.get(b.slug) ?? 0) - (pop.get(a.slug) ?? 0) || byVotes(a, b));
+      } // 'votes': the database already returns most votes first
+      const names = [...levels].sort().map((l) => SPOILER_LEVELS[l].label.toLowerCase());
+      const or = t('or');
+      cursor.filtered = list;
+      cursor.filteredTotals = totals;
+      cursor.filteredTitle = `${t('mostly', { levels: names.join(or) })} · ${t('anime', { n: list.length })}`;
+    }
+    const totals = cursor.filteredTotals!;
+    const list = cursor.filtered.splice(0, 50);
+    return {
+      title: cursor.filteredTitle!,
+      list,
+      sub: (a) => t('ratings', { n: totals.get(a.slug) ?? 0 }),
+      done: cursor.filtered.length === 0,
+    };
+  }
+
+  /** Next non-empty page of seasonal anime, newest season first, skipping `exclude`d slugs. */
+  async function seasonBatch(titleSuffix = '', exclude?: Set<string>): Promise<Batch> {
+    for (;;) {
+      const { season, page } = cursor;
+      if (season.year < OLDEST_YEAR) return { title: '', list: [], done: true };
+      const r = await seasonAnime(season.year, season.season, 50, page);
+      const title = seasonName(season) + titleSuffix;
+      if (r.hasMore) cursor.page++;
+      else cursor = { ...cursor, season: previousSeason(season), page: 1 };
+      const list = exclude ? r.list.filter((a) => !exclude.has(a.slug)) : r.list;
+      if (list.length) return { title, list, done: false };
+    }
+  }
+
+  async function fetchBatch(): Promise<Batch> {
+    if (filtering()) return filteredBatch();
+    if (sort === 'season') return seasonBatch();
+    if (sort === 'popular') {
+      const r = await popularAnimePage(cursor.page++);
+      return { title: t('sortPopular'), list: r.list, done: !r.hasMore };
+    }
+    // Most votes: every rated anime first, then fall back to the latest seasons for the rest.
+    if (cursor.ratedDone) return seasonBatch(t('noVotesYetSuffix'), cursor.rated);
+    let rows: Awaited<ReturnType<typeof popularAnime>> = [];
+    try {
+      rows = await popularAnime(50, cursor.offset);
+    } catch {
+      rows = []; // ratings unavailable: just show the latest seasons
+    }
+    cursor.offset += rows.length;
+    if (rows.length < 50) cursor.ratedDone = true;
+    rows.forEach((r) => cursor.rated.add(r.anime_slug));
+    if (!rows.length) return seasonBatch(t('noVotesYetSuffix'), cursor.rated);
+    const votes = new Map(rows.map((r) => [r.anime_slug, Number(r.votes)]));
+    const slugs = rows.map((r) => r.anime_slug);
+    const list: AnimeCard[] = [];
+    for (let i = 0; i < slugs.length; i += 25)
+      list.push(...(await animeBySlugs(slugs.slice(i, i + 25))));
+    return {
+      title: t('sortVotes'),
+      list,
+      sub: (a) => t('ratings', { n: votes.get(a.slug) ?? 0 }),
+      done: false,
+    };
+  }
+
+  function sectionFor(title: string) {
+    const last = feed.lastElementChild as HTMLElement | null;
+    if (last?.dataset.title === title) return last.querySelector<HTMLElement>('.g-grid')!;
+    const grid = h('div', { class: 'g-grid' });
+    feed.append(
+      h(
+        'section',
+        { class: 'g-section g-feed-section', 'data-title': title },
+        h('div', { class: 'g-section-head' }, h('h2', null, title)),
+        grid,
+      ),
+    );
+    return grid;
+  }
+
+  function setStatus(...children: (Node | string)[]) {
+    mount(status, ...children);
+  }
+
+  function sentinelNearView() {
+    if (browse.hidden) return false;
+    return sentinel.getBoundingClientRect().top < innerHeight + 800;
+  }
+
+  function loadMoreButton(label: string) {
+    return h(
+      'button',
+      {
+        class: 'g-btn g-btn-ghost',
+        type: 'button',
+        onclick: () => loadNext(),
+      },
+      label,
+    );
+  }
+
+  async function loadNext() {
+    if (loading || done || browse.hidden) return;
+    loading = true;
+    const gen = feedGen;
+    setStatus(h('span', { class: 'g-faint' }, t('loading')));
+    const placeholder = feed.childElementCount
+      ? null
+      : h('div', { class: 'g-grid' }, skeletonCards(12));
+    if (placeholder) feed.append(placeholder);
+    let batch: Batch;
+    try {
+      batch = await fetchBatch();
+    } catch (e) {
+      if (gen !== feedGen) return;
+      placeholder?.remove();
+      loading = false;
+      setStatus(
+        h('span', { class: 'g-faint' }, t('couldntLoadMore', { msg: (e as Error).message })),
+        loadMoreButton(t('tryAgain')),
+      );
+      return;
+    }
+    if (gen !== feedGen) return;
+    placeholder?.remove();
+
+    const cards = batch.list.map((a) => animeCard(a, batch.sub?.(a)));
+    if (cards.length) {
+      if (filtering()) cards.forEach((c) => (c.hidden = true)); // until levels are known
+      sectionFor(batch.title).append(...cards);
+      await colorCards(cards);
+      if (gen !== feedGen) return;
+      applyFilter();
+    }
+    done = batch.done;
+    loading = false;
+
+    if (done) {
+      const any = feed.querySelector('.g-card[data-slug]:not([hidden])');
+      setStatus(
+        h(
+          'span',
+          { class: 'g-faint' },
+          any ? t('thatsEverything') : filtering() ? t('noRatedMatch') : t('nothingToShow'),
+        ),
+      );
+      return;
+    }
+    setStatus();
+    maybeLoadMore();
+  }
+
+  function maybeLoadMore() {
+    if (!loading && !done && sentinelNearView()) setTimeout(loadNext, 0);
+  }
+
+  function resetFeed() {
+    feedGen++;
+    loading = false;
+    done = false;
+    cursor = { season: currentSeason(), page: 1, offset: 0, ratedDone: false, rated: new Set() };
+    feed.replaceChildren();
+    setStatus();
+    loadNext();
+  }
+
+  new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && maybeLoadMore(), {
+    rootMargin: '800px 0px',
+  }).observe(sentinel);
+  // Backup for browsers/tabs where the observer is throttled.
+  addEventListener('scroll', maybeLoadMore, { passive: true });
+
+  sortSelect.addEventListener('change', () => {
+    sort = sortSelect.value as Sort;
+    syncUrl();
+    resetFeed();
+    if (input.value.trim()) runSearch(input.value);
+  });
+
+  // ---------------------------------------------------------------------------------------------
+  // Boot
+  // ---------------------------------------------------------------------------------------------
+  const initial = params.get('q') ?? '';
+  if (initial) {
+    input.value = initial;
+    runSearch(initial);
+  } else resetFeed();
+</script>

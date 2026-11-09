@@ -1,0 +1,17 @@
+---
+/**
+ * Bilingual text for Spoiler Gauge static markup. Renders both languages; CSS in openings.css
+ * shows the one matching <html lang> (set before first paint by GaugeLayout's inline script).
+ * Use the en/ja slots instead of props when the text contains links or other markup.
+ */
+interface Props {
+  en?: string;
+  ja?: string;
+}
+const { en, ja } = Astro.props;
+---
+
+<span data-lang="en">{en ?? <slot name="en" />}</span>
+<span data-lang="ja" lang="ja">
+  {ja ?? <slot name="ja" />}
+</span>

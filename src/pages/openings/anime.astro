@@ -1,0 +1,989 @@
+---
+/**
+ * /openings/anime/?slug=<animethemes slug>
+ * One static page renders every anime client-side (GitHub Pages has no rewrites, and
+ * pre-building ~6k anime pages would mean hammering the API on every deploy).
+ */
+import GaugeLayout from '../../layouts/GaugeLayout.astro';
+---
+
+<GaugeLayout title="Anime" titleJa="アニメ" wide>
+  <div id="page">
+    <div class="g-anime-head" aria-hidden="true">
+      <div class="g-anime-cover g-skeleton"></div>
+      <div>
+        <div class="g-skeleton" style="height:38px;max-width:420px;margin-bottom:12px"></div>
+        <div class="g-skeleton" style="height:18px;max-width:300px;margin-bottom:20px"></div>
+        <div class="g-skeleton" style="height:80px;max-width:640px"></div>
+      </div>
+    </div>
+  </div>
+</GaugeLayout>
+
+<script>
+  import {
+    animeDetail,
+    aniListInfo,
+    cover,
+    displayTitle,
+    artistLine,
+    maxEpisode,
+    firstEpisode,
+    type AnimeDetail,
+    type AniListInfo,
+    type Theme,
+  } from '../../openings/animethemes';
+  import {
+    votingEnabled,
+    currentUser,
+    animeStats,
+    myVotes,
+    saveVote,
+    deleteVote,
+    isBookmarked,
+    setBookmark,
+    type ThemeStats,
+    type MyVote,
+  } from '../../openings/db';
+  import { SPOILER_LEVELS, SONG_GENRES, topLevel } from '../../openings/spoilers';
+  import { gauge } from '../../openings/config';
+  import { titled, otherTitles, onTitlePrefChange } from '../../openings/titles';
+  import { $, h, mount, safeUrl } from '../../openings/dom';
+  import { t, seasonYear, formatLabel, animeGenreLabel, songGenreLabel } from '../../openings/i18n';
+  import type { User } from '@supabase/supabase-js';
+
+  const page = $('#page')!;
+  const slug = new URLSearchParams(location.search).get('slug') ?? '';
+
+  // ---------------------------------------------------------------------------------------------
+  // State
+  // ---------------------------------------------------------------------------------------------
+  let anime: AnimeDetail;
+  let ani: AniListInfo | null = null;
+  let user: User | null = null;
+  let stats: Record<string, ThemeStats> = {};
+  let mine = new Map<number, MyVote>();
+  let dbError = '';
+  let bookmarked = false;
+  const bookmarkBtn = h('button', {
+    class: 'g-btn g-btn-ghost g-bookmark',
+    type: 'button',
+    'aria-pressed': 'false',
+  });
+  let episodeCount = 0;
+  const openForms = new Set<number>();
+  const themeEls = new Map<number, HTMLElement>();
+
+  // ---------------------------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------------------------
+  const typeName = (th: Theme) =>
+    th.type === 'OP' ? t('opening') : th.type === 'ED' ? t('ending') : t('insertSong');
+  /** Lower-case for English sentences ("this opening"); Japanese has no case. */
+  const typeWord = (th: Theme) => typeName(th).toLowerCase();
+  const levelOf = (n: number) => SPOILER_LEVELS[Math.max(0, Math.min(4, n))];
+  const pct = (n: number, d: number) => (d ? Math.round((n / d) * 100) : 0);
+
+  function sortThemes(list: Theme[]) {
+    return [...list].sort(
+      (a, b) =>
+        (a.sequence ?? 1) - (b.sequence ?? 1) ||
+        Number(!!a.group) - Number(!!b.group) ||
+        a.slug.localeCompare(b.slug, undefined, { numeric: true }),
+    );
+  }
+
+  function svg(tag: string, attrs: Record<string, string | number>, ...kids: SVGElement[]) {
+    const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
+    el.append(...kids);
+    return el;
+  }
+
+  /** Half-circle gauge, five coloured segments, needle at the average rating (0–4). */
+  function dial(avg: number | null) {
+    const cx = 42,
+      cy = 46,
+      r = 36;
+    const seg = (i: number) => {
+      const a0 = Math.PI * (1 - i / 5) - 0.03,
+        a1 = Math.PI * (1 - (i + 1) / 5) + 0.03;
+      const p = (a: number) => `${cx + r * Math.cos(a)} ${cy - r * Math.sin(a)}`;
+      return svg('path', {
+        d: `M ${p(a0)} A ${r} ${r} 0 0 1 ${p(a1)}`,
+        stroke: SPOILER_LEVELS[i].color,
+        'stroke-width': 8,
+        fill: 'none',
+        opacity: avg === null ? 0.25 : 1,
+      });
+    };
+    const kids = [0, 1, 2, 3, 4].map(seg);
+    if (avg !== null) {
+      const a = Math.PI * (1 - (avg + 0.5) / 5);
+      kids.push(
+        svg('line', {
+          x1: cx,
+          y1: cy,
+          x2: cx + (r - 10) * Math.cos(a),
+          y2: cy - (r - 10) * Math.sin(a),
+          stroke: 'currentColor',
+          'stroke-width': 3,
+          'stroke-linecap': 'round',
+        }),
+      );
+    }
+    kids.push(svg('circle', { cx, cy, r: 4, fill: 'currentColor' }));
+    return svg('svg', { viewBox: '0 0 84 52', class: 'g-dial', 'aria-hidden': 'true' }, ...kids);
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // Theme card
+  // ---------------------------------------------------------------------------------------------
+  /** withTitle=false when the card already has the full-width expand/collapse header. */
+  function renderInfo(th: Theme, withTitle = true) {
+    const s = stats[th.id];
+    const song = th.song;
+    const genres = Object.entries(s?.genres ?? {}).sort((a, b) => b[1] - a[1]);
+    const entries = [...th.animethemeentries].sort((a, b) => a.version - b.version);
+    const spoilerVersions = entries.filter((e) => e.spoiler).map((e) => `v${e.version}`);
+    const nsfw = entries.some((e) => e.nsfw);
+    const listen = song?.resources.nodes ?? [];
+    const label = `${typeName(th)}${th.sequence ? ` ${th.sequence}` : ''}`;
+
+    const rows: [string, Node | string][] = [];
+    if (song?.performances.length) rows.push([t('artist'), artistLine(song.performances)]);
+    rows.push([
+      t('genre'),
+      genres.length
+        ? h(
+            'span',
+            null,
+            songGenreLabel(genres[0][0]),
+            h(
+              'span',
+              { class: 'g-faint' },
+              ` · ${t('votes', { n: genres[0][1] })}`,
+              genres[1] ? t('thenGenre', { genre: songGenreLabel(genres[1][0]) }) : '',
+            ),
+          )
+        : h('span', { class: 'g-faint' }, t('notTagged')),
+    ]);
+    rows.push([t('type'), th.group ? `${label} · ${th.group.name}` : label]);
+    if (entries.length)
+      rows.push([
+        t('episodesLabel'),
+        h(
+          'span',
+          null,
+          entries.map((e, i) => [
+            i ? h('br') : null,
+            entries.length > 1 ? h('span', { class: 'g-faint' }, `v${e.version}: `) : null,
+            e.episodes || t('unknown'),
+            e.notes ? h('span', { class: 'g-faint' }, ` (${e.notes})`) : null,
+          ]),
+        ),
+      ]);
+    if (spoilerVersions.length || nsfw)
+      rows.push([
+        t('flags'),
+        h(
+          'span',
+          { class: 'g-links' },
+          spoilerVersions.length
+            ? h(
+                'span',
+                {
+                  class: 'g-chip',
+                  style: `--c:var(--lv3)`,
+                  title: t('flaggedByEditors'),
+                },
+                t('animeThemesSpoiler', { versions: spoilerVersions.join(', ') }),
+              )
+            : null,
+          nsfw ? h('span', { class: 'g-chip', style: '--c:var(--lv4)' }, 'NSFW') : null,
+        ),
+      ]);
+    if (listen.length)
+      rows.push([
+        t('listen'),
+        h(
+          'span',
+          { class: 'g-links' },
+          listen.map((r) =>
+            h(
+              'a',
+              { href: safeUrl(r.link), target: '_blank', rel: 'noopener noreferrer' },
+              r.siteLocalized,
+            ),
+          ),
+        ),
+      ]);
+
+    return h(
+      'div',
+      null,
+      withTitle
+        ? h(
+            'div',
+            { class: 'g-theme-title' },
+            h('span', { class: `g-badge ${th.type === 'ED' ? 'g-badge-ed' : ''}` }, th.slug),
+            titled('h3', null, song?.title ?? {}),
+          )
+        : null,
+      song?.title.native && song.title.romaji
+        ? titled(
+            'div',
+            { class: 'g-theme-native' },
+            // Shows the *other* script: Japanese under a romaji title, romaji under a Japanese one.
+            { romaji: song.title.native, english: song.title.native, native: song.title.romaji },
+          )
+        : null,
+      h(
+        'dl',
+        { class: 'g-dl' },
+        rows.map(([k, v]) => [h('dt', null, k), h('dd', null, v)]),
+      ),
+    );
+  }
+
+  function renderStats(th: Theme) {
+    const s = stats[th.id];
+    const total = s?.total ?? 0;
+    const levels = s?.levels ?? [0, 0, 0, 0, 0];
+    const my = mine.get(th.id);
+    const wrap = h('div', { class: 'g-stats' });
+
+    if (!total) {
+      wrap.append(
+        h(
+          'div',
+          { class: 'g-verdict' },
+          dial(null),
+          h(
+            'div',
+            { class: 'g-verdict-text' },
+            h('strong', null, t('notRatedYet')),
+            h('span', null, t('beFirst', { type: typeWord(th) })),
+          ),
+        ),
+      );
+    } else {
+      const top = topLevel(levels) ?? 0;
+      const avg = levels.reduce((sum, n, i) => sum + n * i, 0) / total;
+      const lv = levelOf(top);
+      wrap.append(
+        h(
+          'div',
+          { class: 'g-verdict' },
+          dial(avg),
+          h(
+            'div',
+            { class: 'g-verdict-text' },
+            h('strong', { style: `color:${lv.color}` }, lv.label),
+            h(
+              'span',
+              null,
+              t('verdictLine', {
+                top: levels[top],
+                total: total.toLocaleString(),
+                pct: pct(levels[top], total),
+                avg: levelOf(Math.round(avg)).short.toLowerCase(),
+              }),
+            ),
+          ),
+        ),
+      );
+    }
+
+    wrap.append(
+      h(
+        'div',
+        { class: 'g-bars', role: 'list', 'aria-label': t('ratingsByLevel') },
+        SPOILER_LEVELS.map((l, i) =>
+          h(
+            'div',
+            {
+              class: `g-bar ${my?.spoiler_level === i ? 'mine' : ''}`,
+              role: 'listitem',
+              style: `--c:${l.color}`,
+              title: l.description,
+            },
+            h(
+              'span',
+              null,
+              h('span', { class: 'g-bar-label-long' }, l.label),
+              h('span', { class: 'g-bar-label-short' }, l.short),
+            ),
+            h(
+              'span',
+              { class: 'g-bar-track' },
+              h('span', {
+                class: 'g-bar-fill',
+                style: `width:${pct(levels[i], total)}%;display:block`,
+              }),
+            ),
+            h('span', { class: 'g-bar-n' }, levels[i].toLocaleString()),
+          ),
+        ),
+      ),
+    );
+
+    wrap.append(renderSafe(th, s));
+    wrap.append(renderActions(th));
+    return wrap;
+  }
+
+  function renderSafe(th: Theme, s: ThemeStats | undefined) {
+    const safe = Object.entries(s?.safe ?? {}).map(([k, v]) => [Number(k), v] as [number, number]);
+    const total = safe.reduce((a, [, n]) => a + n, 0);
+    const first = firstEpisode(th.animethemeentries);
+    const box = h('div', { class: 'g-safe' });
+    if (!total) {
+      box.append(
+        h('span', { class: 'g-muted' }, t('noSafeYet')),
+        first && first > 1 ? h('div', { class: 'g-faint' }, t('firstAirs', { ep: first })) : '',
+      );
+      return box;
+    }
+    const fromStart = safe.find(([ep]) => ep === 0)?.[1] ?? 0;
+    const later = safe.filter(([ep]) => ep > 0).sort((a, b) => b[1] - a[1] || a[0] - b[0]);
+    // median over all recommendations
+    const sorted = safe.sort((a, b) => a[0] - b[0]);
+    let acc = 0,
+      median = 0;
+    for (const [ep, n] of sorted) {
+      acc += n;
+      if (acc >= total / 2) {
+        median = ep;
+        break;
+      }
+    }
+
+    const lines: (Node | string)[] = [];
+    if (later.length)
+      lines.push(h('div', null, t('usersRecommendWait', { n: later[0][1], ep: later[0][0] })));
+    if (fromStart) lines.push(h('div', null, t('usersSafeFromStart', { n: fromStart })));
+    lines.push(
+      h(
+        'div',
+        { class: 'g-faint' },
+        t('median', {
+          value: median === 0 ? t('safeFromStartLower') : t('afterEpisode', { ep: median }),
+          n: total,
+        }),
+      ),
+    );
+    box.append(...lines);
+
+    // histogram 0..max (bucketed to ≤40 bars)
+    const maxEp = Math.max(...sorted.map(([ep]) => ep));
+    if (maxEp > 0) {
+      const buckets = Math.min(40, maxEp + 1);
+      const size = (maxEp + 1) / buckets;
+      const counts = new Array(buckets).fill(0);
+      for (const [ep, n] of sorted) counts[Math.min(buckets - 1, Math.floor(ep / size))] += n;
+      const peak = Math.max(...counts);
+      box.append(
+        h(
+          'div',
+          { class: 'g-hist', 'aria-hidden': 'true' },
+          counts.map((c) =>
+            h('span', { style: `height:${Math.max(c ? 8 : 0, (c / peak) * 100)}%` }),
+          ),
+        ),
+        h(
+          'div',
+          { class: 'g-hist-axis', 'aria-hidden': 'true' },
+          h('span', null, t('histStart')),
+          h('span', null, t('histEp', { ep: maxEp })),
+        ),
+      );
+    }
+    return box;
+  }
+
+  function renderActions(th: Theme) {
+    const my = mine.get(th.id);
+    const row = h('div', { class: 'g-actions' });
+    if (!votingEnabled) {
+      row.append(h('span', { class: 'g-faint' }, t('votingOff')));
+      return row;
+    }
+    if (dbError) {
+      row.append(h('span', { class: 'g-faint' }, dbError));
+      return row;
+    }
+    if (!user) {
+      row.append(
+        h(
+          'button',
+          {
+            class: 'g-btn g-btn-primary',
+            type: 'button',
+            onclick: () => (window as unknown as { gaugeSignIn: () => void }).gaugeSignIn(),
+          },
+          t('signInToRate'),
+        ),
+      );
+      return row;
+    }
+    row.append(
+      h(
+        'button',
+        {
+          class: `g-btn ${my ? 'g-btn-ghost' : 'g-btn-primary'}`,
+          type: 'button',
+          'aria-expanded': openForms.has(th.id) ? 'true' : 'false',
+          onclick: () => {
+            if (openForms.has(th.id)) openForms.delete(th.id);
+            else openForms.add(th.id);
+            renderTheme(th);
+          },
+        },
+        openForms.has(th.id) ? t('close') : my ? t('editRating') : t('rateThis'),
+      ),
+    );
+    if (my)
+      row.append(
+        h(
+          'span',
+          { class: 'g-chip', style: `--c:${levelOf(my.spoiler_level).color}` },
+          t('youChip', {
+            level: levelOf(my.spoiler_level).short,
+            safe:
+              my.safe_after_episode === null
+                ? ''
+                : my.safe_after_episode === 0
+                  ? t('youSafeStart')
+                  : t('youAfterEp', { ep: my.safe_after_episode }),
+          }),
+        ),
+      );
+    return row;
+  }
+
+  function renderForm(th: Theme) {
+    const my = mine.get(th.id);
+    const name = `lvl-${th.id}`;
+    const first = firstEpisode(th.animethemeentries);
+    const status = h('div', { class: 'g-form-status', role: 'status' });
+
+    const epSelect = h(
+      'select',
+      { name: 'safe' },
+      h('option', { value: '' }, t('notSure')),
+      h('option', { value: '0' }, t('safeFromStart')),
+      Array.from({ length: episodeCount }, (_, i) =>
+        h('option', { value: String(i + 1) }, t('afterEpisodeOption', { ep: i + 1 })),
+      ),
+    ) as HTMLSelectElement;
+    epSelect.value = my?.safe_after_episode != null ? String(my.safe_after_episode) : '';
+
+    const genreSelect = h(
+      'select',
+      { name: 'genre' },
+      h('option', { value: '' }, t('skip')),
+      SONG_GENRES.map((g) => h('option', { value: g }, songGenreLabel(g))),
+    ) as HTMLSelectElement;
+    genreSelect.value = my?.genre ?? '';
+
+    const form = h(
+      'form',
+      { class: 'g-form' },
+      h(
+        'fieldset',
+        null,
+        h('legend', null, t('howSpoilerHeavy', { type: typeWord(th) })),
+        h(
+          'div',
+          { class: 'g-levels' },
+          SPOILER_LEVELS.map((l) =>
+            h(
+              'label',
+              { class: 'g-level', style: `--c:${l.color}` },
+              h('input', {
+                type: 'radio',
+                name,
+                value: l.value,
+                required: true,
+                checked: my?.spoiler_level === l.value,
+              }),
+              h('strong', null, l.label),
+              h('span', null, l.description),
+            ),
+          ),
+        ),
+      ),
+      h(
+        'div',
+        { class: 'g-form-row' },
+        h(
+          'label',
+          { class: 'g-field' },
+          h('span', null, t('safeToWatchAfter')),
+          epSelect,
+          h('small', null, first ? t('itFirstAirs', { ep: first }) : t('pickEpisode')),
+        ),
+        h(
+          'label',
+          { class: 'g-field' },
+          h('span', null, t('songGenre')),
+          genreSelect,
+          h('small', null, t('helpsGenre')),
+        ),
+      ),
+      h(
+        'div',
+        { class: 'g-actions' },
+        h(
+          'button',
+          { class: 'g-btn g-btn-primary', type: 'submit' },
+          my ? t('updateRating') : t('saveRating'),
+        ),
+        my
+          ? h(
+              'button',
+              {
+                class: 'g-btn g-btn-danger',
+                type: 'button',
+                onclick: async () => {
+                  status.textContent = t('removing');
+                  try {
+                    await deleteVote(th.id);
+                    openForms.delete(th.id);
+                    await refresh();
+                  } catch (e) {
+                    status.className = 'g-form-status err';
+                    status.textContent = (e as Error).message;
+                  }
+                },
+              },
+              t('removeRating'),
+            )
+          : null,
+        status,
+      ),
+    ) as HTMLFormElement;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const lvl = form.querySelector<HTMLInputElement>(`input[name="${name}"]:checked`);
+      if (!lvl) return;
+      const btn = form.querySelector<HTMLButtonElement>('button[type=submit]')!;
+      btn.disabled = true;
+      status.className = 'g-form-status';
+      status.textContent = t('saving');
+      try {
+        await saveVote({
+          theme_id: th.id,
+          anime_id: anime.id,
+          anime_slug: anime.slug,
+          spoiler_level: Number(lvl.value),
+          safe_after_episode: epSelect.value === '' ? null : Number(epSelect.value),
+          genre: genreSelect.value || null,
+        });
+        openForms.delete(th.id);
+        await refresh();
+      } catch (err) {
+        btn.disabled = false;
+        status.className = 'g-form-status err';
+        status.textContent = (err as Error).message;
+      }
+    });
+    return form;
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // Compact cards: sections with many songs (long-running shows) start as one-line summaries
+  // that expand on click, so 30+ openings don't mean 15,000px of scrolling.
+  // ---------------------------------------------------------------------------------------------
+  const COMPACT_OVER = 3;
+  const expanded = new Map<number, boolean>();
+
+  const isLongSection = (t: Theme) =>
+    anime.animethemes.filter((x) => x.type === t.type).length > COMPACT_OVER;
+
+  function isExpanded(t: Theme) {
+    if (openForms.has(t.id)) return true;
+    return expanded.get(t.id) ?? !isLongSection(t);
+  }
+
+  function toggleTheme(t: Theme, open: boolean) {
+    expanded.set(t.id, open);
+    if (!open) openForms.delete(t.id);
+    const el = renderTheme(t);
+    el.querySelector<HTMLElement>('.g-theme-summary')?.focus();
+    // Animate the arrow turning (the card is redrawn, so a plain CSS transition wouldn't run).
+    el.classList.add('g-toggled');
+    setTimeout(() => el.classList.remove('g-toggled'), 250);
+    if (!open && el.getBoundingClientRect().top < 70) el.scrollIntoView({ block: 'nearest' });
+  }
+
+  /** "Safe from the start" / "Wait for ep 7", from the most common recommendation. */
+  function safeSummary(s: ThemeStats | undefined) {
+    const best = Object.entries(s?.safe ?? {}).sort(
+      (a, b) => b[1] - a[1] || Number(a[0]) - Number(b[0]),
+    )[0];
+    if (!best) return null;
+    return best[0] === '0' ? t('safeFromStart') : t('waitForEp', { ep: best[0] });
+  }
+
+  function renderSummary(th: Theme) {
+    const s = stats[th.id];
+    const top = topLevel(s?.levels);
+    const song = th.song;
+    const episodes = th.animethemeentries
+      .map((e) => e.episodes)
+      .filter(Boolean)
+      .join(', ');
+    const sub = [
+      song?.performances.length ? artistLine(song.performances) : null,
+      episodes && t('epsRange', { eps: episodes }),
+    ]
+      .filter(Boolean)
+      .join(' · ');
+    const safe = safeSummary(s);
+    return h(
+      'button',
+      {
+        class: 'g-theme-summary',
+        type: 'button',
+        'aria-expanded': 'false',
+        title: t('showDetails'),
+        onclick: () => toggleTheme(th, true),
+      },
+      h('span', { class: `g-badge ${th.type === 'ED' ? 'g-badge-ed' : ''}` }, th.slug),
+      h(
+        'span',
+        { class: 'g-sum-main' },
+        titled('span', { class: 'g-sum-title' }, song?.title ?? {}),
+        sub && h('span', { class: 'g-sum-sub' }, sub),
+      ),
+      h(
+        'span',
+        { class: 'g-sum-tags' },
+        top !== null
+          ? h(
+              'span',
+              { class: 'g-chip', style: `--c:${SPOILER_LEVELS[top].color}` },
+              SPOILER_LEVELS[top].short,
+              h('span', { class: 'g-faint' }, ` · ${s!.total}`),
+            )
+          : h('span', { class: 'g-chip g-chip-plain g-faint' }, t('notRated')),
+        safe && h('span', { class: 'g-sum-safe' }, safe),
+      ),
+      h('span', { class: 'g-chevron', 'aria-hidden': 'true' }),
+    );
+  }
+
+  function renderExpandedHeader(th: Theme) {
+    return h(
+      'button',
+      {
+        class: 'g-theme-summary g-theme-head',
+        type: 'button',
+        'aria-expanded': 'true',
+        title: t('collapse'),
+        onclick: () => toggleTheme(th, false),
+      },
+      h('span', { class: `g-badge ${th.type === 'ED' ? 'g-badge-ed' : ''}` }, th.slug),
+      h(
+        'span',
+        { class: 'g-sum-main' },
+        titled('span', { class: 'g-sum-title' }, th.song?.title ?? {}),
+      ),
+      h('span', { class: 'g-chevron', 'aria-hidden': 'true' }),
+    );
+  }
+
+  function renderTheme(t: Theme) {
+    const el = themeEls.get(t.id) ?? h('article', { class: 'g-theme', id: t.slug });
+    themeEls.set(t.id, el);
+    // Colour-code the whole card by the level most users picked.
+    const top = topLevel(stats[t.id]?.levels);
+    el.classList.toggle('rated', top !== null);
+    if (top !== null) el.style.setProperty('--c', SPOILER_LEVELS[top].color);
+    else el.style.removeProperty('--c');
+    const open = isExpanded(t);
+    el.classList.toggle('compact', !open);
+    const form = openForms.has(t.id) && user ? renderForm(t) : null;
+    if (!open) mount(el, renderSummary(t));
+    else if (isLongSection(t))
+      // Same header row as the collapsed card, so the arrow stays in place and just flips.
+      mount(el, renderExpandedHeader(t), renderInfo(t, false), renderStats(t), form);
+    else mount(el, renderInfo(t), renderStats(t), form);
+    return el;
+  }
+
+  function renderSection(type: 'OP' | 'ED', id: string, title: string) {
+    const list = sortThemes(anime.animethemes.filter((th) => th.type === type));
+    const toggleAll =
+      list.length > COMPACT_OVER
+        ? h('button', { class: 'g-linkish g-toggle-all', type: 'button' }, t('expandAll'))
+        : null;
+    toggleAll?.addEventListener('click', () => {
+      const open = toggleAll.dataset.open !== 'true';
+      toggleAll.dataset.open = String(open);
+      for (const x of list) {
+        expanded.set(x.id, open);
+        if (!open) openForms.delete(x.id);
+        renderTheme(x);
+      }
+      toggleAll.textContent = open ? t('collapseAll') : t('expandAll');
+    });
+    return h(
+      'section',
+      { class: 'g-section g-themes-section', id },
+      h('h2', null, title, h('span', { class: 'g-count' }, String(list.length)), toggleAll),
+      list.length
+        ? h(
+            'div',
+            { class: 'g-themes' },
+            list.map((x) => renderTheme(x)),
+          )
+        : h('p', { class: 'g-empty' }, t('noneListed', { what: title.toLowerCase() })),
+    );
+  }
+
+  let headEl: HTMLElement | null = null;
+  const setDocTitle = () => (document.title = t('docTitle', { title: displayTitle(anime) }));
+
+  // Title language switched in the header: titled() elements update themselves; the heading's
+  // "also known as" line and the tab title need recomputing.
+  onTitlePrefChange(() => {
+    if (!anime) return;
+    setDocTitle();
+    const next = renderHead();
+    headEl?.replaceWith(next);
+    headEl = next;
+  });
+
+  function renderHead() {
+    const img = cover(anime);
+    const alt = otherTitles(anime.title).join(' · ');
+    const facts = [
+      seasonYear(anime.seasonLocalized, anime.year),
+      formatLabel(anime.formatLocalized),
+      episodeCount && ani?.episodes ? t('episodeCount', { n: ani.episodes }) : null,
+      ani?.status === 'RELEASING' ? t('airing') : null,
+      ...anime.studios.nodes.map((s) => s.name),
+    ].filter(Boolean) as string[];
+    const anilist = anime.resources.nodes.find((r) => r.site === 'ANILIST');
+    const mal = anime.resources.nodes.find((r) => r.site === 'MAL');
+
+    const syn = h(
+      'div',
+      { class: 'g-synopsis clamped' },
+      (anime.synopsis ?? '')
+        .replace(/\r/g, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim(),
+    );
+    const more = h(
+      'button',
+      {
+        class: 'g-linkish',
+        type: 'button',
+        onclick: () => {
+          syn.classList.toggle('clamped');
+          more.textContent = syn.classList.contains('clamped') ? t('readMore') : t('showLess');
+        },
+      },
+      t('readMore'),
+    );
+
+    return h(
+      'div',
+      { class: 'g-anime-head' },
+      h(
+        'div',
+        { class: 'g-anime-cover' },
+        img &&
+          h('img', {
+            src: img,
+            alt: t('coverAlt', { title: displayTitle(anime) }),
+            referrerpolicy: 'no-referrer',
+          }),
+      ),
+      h(
+        'div',
+        { class: 'g-synopsis-wrap' },
+        titled('h1', null, anime.title),
+        alt && h('p', { class: 'g-anime-alt' }, alt),
+        h(
+          'div',
+          { class: 'g-anime-facts' },
+          facts.map((f) => h('span', { class: 'g-chip g-chip-plain' }, f)),
+          (ani?.genres ?? []).map((g) =>
+            h('span', { class: 'g-chip g-chip-plain g-faint' }, animeGenreLabel(g)),
+          ),
+        ),
+        anime.synopsis ? [syn, more] : null,
+        votingEnabled ? h('div', { style: 'margin-top:14px' }, bookmarkBtn) : null,
+        h(
+          'p',
+          { class: 'g-links', style: 'margin-top:12px;font-size:.9rem' },
+          h(
+            'a',
+            { href: safeUrl(anime.siteUrl), target: '_blank', rel: 'noopener' },
+            'AnimeThemes',
+          ),
+          anilist &&
+            h('a', { href: safeUrl(anilist.link), target: '_blank', rel: 'noopener' }, 'AniList'),
+          mal &&
+            h('a', { href: safeUrl(mal.link), target: '_blank', rel: 'noopener' }, 'MyAnimeList'),
+        ),
+      ),
+    );
+  }
+
+  function renderBookmark() {
+    const star = (filled: boolean) => {
+      const svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svgEl.setAttribute('viewBox', '0 0 24 24');
+      svgEl.setAttribute('aria-hidden', 'true');
+      const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p.setAttribute(
+        'd',
+        'M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z',
+      );
+      p.setAttribute('fill', filled ? 'currentColor' : 'none');
+      p.setAttribute('stroke', 'currentColor');
+      p.setAttribute('stroke-width', '1.8');
+      p.setAttribute('stroke-linejoin', 'round');
+      svgEl.append(p);
+      return svgEl;
+    };
+    bookmarkBtn.setAttribute('aria-pressed', String(bookmarked));
+    bookmarkBtn.disabled = false;
+    mount(bookmarkBtn, star(bookmarked), bookmarked ? t('bookmarked') : t('bookmark'));
+  }
+
+  bookmarkBtn.addEventListener('click', async () => {
+    if (!user) return (window as unknown as { gaugeSignIn: () => void }).gaugeSignIn();
+    bookmarkBtn.disabled = true;
+    try {
+      await setBookmark(anime.slug, !bookmarked);
+      bookmarked = !bookmarked;
+    } catch (e) {
+      console.error(e);
+    }
+    renderBookmark();
+  });
+
+  async function loadBookmark() {
+    try {
+      bookmarked = user ? await isBookmarked(anime.slug) : false;
+    } catch {
+      bookmarked = false;
+    }
+    renderBookmark();
+  }
+
+  function renderPage() {
+    const ops = anime.animethemes.filter((t) => t.type === 'OP').length;
+    const eds = anime.animethemes.filter((t) => t.type === 'ED').length;
+    themeEls.clear();
+    mount(
+      page,
+      (headEl = renderHead()),
+      !votingEnabled
+        ? h(
+            'p',
+            { class: 'g-notice', style: 'margin-top:20px' },
+            h('strong', null, t('ratingsOffline')),
+            t('ratingsOfflineBody'),
+          )
+        : null,
+      h(
+        'nav',
+        { class: 'g-jump', 'aria-label': t('sections') },
+        h('a', { class: 'g-btn g-btn-ghost', href: '#openings' }, `${t('openings')} (${ops})`),
+        h('a', { class: 'g-btn g-btn-ghost', href: '#endings' }, `${t('endings')} (${eds})`),
+      ),
+      // Side by side on wide screens, stacked (with the jump links above) on narrow ones.
+      h(
+        'div',
+        { class: 'g-themes-cols' },
+        renderSection('OP', 'openings', t('openings')),
+        renderSection('ED', 'endings', t('endings')),
+      ),
+    );
+    if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView();
+  }
+
+  function rerenderThemes() {
+    for (const t of anime.animethemes) if (themeEls.has(t.id)) renderTheme(t);
+  }
+
+  async function refresh() {
+    if (!votingEnabled) return;
+    try {
+      const [s, m] = await Promise.all([animeStats(anime.id), myVotes(anime.id)]);
+      stats = s;
+      mine = new Map(m.map((v) => [v.theme_id, v]));
+      dbError = '';
+    } catch (e) {
+      console.error(e);
+      dbError = t('couldntLoadRatings');
+    }
+    rerenderThemes();
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // Boot
+  // ---------------------------------------------------------------------------------------------
+  function fail(title: string, msg: string) {
+    mount(
+      page,
+      h(
+        'div',
+        { class: 'g-empty' },
+        h('h1', null, title),
+        h('p', null, msg),
+        h('a', { class: 'g-btn g-btn-primary', href: `${gauge.base}/` }, t('searchAnime')),
+      ),
+    );
+  }
+
+  async function boot() {
+    if (!slug) return fail(t('noAnimePicked'), t('noAnimePickedBody'));
+    let a: AnimeDetail | null;
+    try {
+      a = await animeDetail(slug);
+    } catch (e) {
+      return fail(t('couldntLoadAnime'), t('animeThemesDown', { msg: (e as Error).message }));
+    }
+    if (!a) return fail(t('animeNotFound'), t('noSuchAnime', { slug }));
+    anime = a;
+    setDocTitle();
+
+    const anilistId = anime.resources.nodes.find((r) => r.site === 'ANILIST')?.externalId;
+    [ani, user] = await Promise.all([anilistId ? aniListInfo(anilistId) : null, currentUser()]);
+    // AnimeThemes sometimes lacks the Japanese or English title; AniList usually has them.
+    anime.title.native ||= ani?.title?.native ?? null;
+    anime.title.english ||= ani?.title?.english ?? null;
+    setDocTitle();
+
+    const known = Math.max(
+      0,
+      ...anime.animethemes.map((t) => maxEpisode(t.animethemeentries) ?? 0),
+    );
+    const aired = ani?.nextAiringEpisode ? ani.nextAiringEpisode.episode - 1 : 0;
+    episodeCount = ani?.episodes || Math.max(known, aired) || 50;
+
+    renderPage();
+    renderBookmark();
+    await Promise.all([refresh(), loadBookmark()]);
+
+    window.addEventListener('gauge:auth', async (e) => {
+      const next = (e as CustomEvent<User | null>).detail;
+      if ((next?.id ?? null) === (user?.id ?? null)) return;
+      user = next;
+      openForms.clear();
+      await Promise.all([refresh(), loadBookmark()]);
+    });
+  }
+
+  boot();
+</script>

@@ -12,6 +12,8 @@ dist/
 !.env.example
 
 # Editor / OS
+# Local Claude Code settings (dev-server launch config etc.)
+.claude/
 .DS_Store
 Thumbs.db
 .idea/

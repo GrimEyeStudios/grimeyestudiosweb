@@ -1,0 +1,1567 @@
+/* Spoiler Gauge — standalone styles for /openings/. Independent of global.css on purpose. */
+@import '@fontsource/chakra-petch/600.css';
+@import '@fontsource/chakra-petch/700.css';
+@import '@fontsource-variable/space-grotesk';
+
+:root {
+  color-scheme: dark;
+  --bg: #0c0d18;
+  --bg-2: #13152a;
+  --bg-3: #1b1e38;
+  --line: #262a4a;
+  --line-2: #363b63;
+  --text: #ecebf6;
+  --muted: #a3a2bf;
+  --faint: #6f6e8f;
+  --accent: #8b7bff;
+  --accent-2: #b3a8ff;
+
+  --lv0: #3ecf8e;
+  --lv1: #b6d94c;
+  --lv2: #f5c542;
+  --lv3: #f5813f;
+  --lv4: #ef4565;
+
+  --font-display: 'Chakra Petch', system-ui, sans-serif;
+  --font-body: 'Space Grotesk Variable', system-ui, sans-serif;
+  --radius: 8px;
+  --radius-lg: 14px;
+  --gutter: 16px;
+  --max: 1180px;
+}
+
+@media (min-width: 720px) {
+  :root {
+    --gutter: 28px;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-text-size-adjust: 100%;
+}
+
+body.gauge {
+  margin: 0;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(1000px 500px at 85% -10%, rgb(139 123 255 / 0.14), transparent 60%),
+    radial-gradient(700px 400px at -10% 10%, rgb(239 69 101 / 0.08), transparent 60%), var(--bg);
+  overflow-x: hidden;
+}
+
+a {
+  color: var(--accent-2);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  line-height: 1.15;
+  margin: 0 0 0.4em;
+  letter-spacing: 0.01em;
+}
+h1 {
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+}
+h2 {
+  font-size: clamp(1.3rem, 2.5vw, 1.7rem);
+}
+h3 {
+  font-size: 1.15rem;
+}
+p {
+  margin: 0 0 1em;
+}
+img {
+  max-width: 100%;
+  display: block;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.g-wrap {
+  width: 100%;
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+.g-main {
+  flex: 1;
+  padding-top: 28px;
+  padding-bottom: 64px;
+}
+.g-muted {
+  color: var(--muted);
+}
+.g-faint {
+  color: var(--faint);
+}
+
+/* ---------- header / footer ---------- */
+
+.g-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgb(12 13 24 / 0.85);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.g-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 60px;
+}
+.g-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.15rem;
+  white-space: nowrap;
+}
+.g-brand:hover {
+  text-decoration: none;
+}
+.g-header-search {
+  flex: 1;
+  max-width: 420px;
+  margin-left: auto;
+}
+.g-header-search input {
+  width: 100%;
+}
+.g-auth {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.g-header-search + .g-auth {
+  margin-left: 0;
+}
+.g-user {
+  color: var(--muted);
+  font-size: 0.9rem;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .g-header-inner {
+    flex-wrap: wrap;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .g-header-search {
+    order: 3;
+    flex-basis: 100%;
+    max-width: none;
+  }
+  .g-user-link:has(.g-avatar) .g-user {
+    display: none;
+  }
+}
+
+.g-footer {
+  border-top: 1px solid var(--line);
+  padding: 24px 0;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.g-footer p {
+  margin: 0 0 6px;
+}
+
+/* ---------- controls ---------- */
+
+input[type='search'],
+input[type='text'],
+select,
+textarea {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg-2);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgb(139 123 255 / 0.25);
+}
+
+.g-btn {
+  font: inherit;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+  color: var(--text);
+  background: var(--bg-3);
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.g-btn:hover {
+  background: var(--line-2);
+}
+.g-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.g-btn-primary {
+  background: var(--accent);
+  color: #0c0d18;
+}
+.g-btn-primary:hover {
+  background: var(--accent-2);
+}
+.g-btn-ghost {
+  background: transparent;
+  border-color: var(--line-2);
+}
+.g-btn-danger {
+  background: transparent;
+  border-color: rgb(239 69 101 / 0.5);
+  color: #ff8aa0;
+}
+.g-btn-discord {
+  background: #5865f2;
+  color: #fff;
+}
+.g-btn-discord:hover {
+  background: #6d79ff;
+}
+.g-btn-google {
+  background: #fff;
+  color: #1f1f1f;
+}
+.g-btn-google:hover {
+  background: #e8e8ee;
+}
+/* Logo pinned left, label centred — the usual "Continue with X" pattern. */
+.g-btn-provider {
+  position: relative;
+  min-height: 46px;
+  padding: 10px 48px;
+  font-size: 0.98rem;
+}
+.g-provider-logo {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  transform: translateY(-50%);
+}
+.g-btn-google {
+  border-color: #dadce0;
+}
+.g-btn-provider:disabled {
+  cursor: progress;
+}
+.g-signin-legal {
+  font-size: 0.82rem;
+}
+
+.g-dialog {
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-lg);
+  background: var(--bg-2);
+  color: var(--text);
+  padding: 24px;
+  width: min(420px, calc(100vw - 32px));
+}
+.g-dialog::backdrop {
+  background: rgb(0 0 0 / 0.6);
+}
+.g-signin-buttons {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0;
+}
+.g-dialog-close {
+  width: 100%;
+}
+
+.g-notice {
+  border: 1px solid var(--line-2);
+  background: var(--bg-2);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+.g-notice strong {
+  color: var(--text);
+}
+
+/* ---------- home ---------- */
+
+.g-hero {
+  text-align: center;
+  padding: 36px 0 28px;
+}
+.g-hero p {
+  color: var(--muted);
+  max-width: 620px;
+  margin: 0 auto 22px;
+}
+.g-hero-search {
+  display: flex;
+  gap: 8px;
+  max-width: 620px;
+  margin: 0 auto;
+}
+.g-hero-search input {
+  flex: 1;
+  min-width: 0;
+  font-size: 1.1rem;
+  padding: 13px 16px;
+  border-radius: var(--radius-lg);
+}
+.g-hero-search .g-btn {
+  border-radius: var(--radius-lg);
+  padding: 0 20px;
+}
+
+.g-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 22px auto 0;
+  max-width: 820px;
+}
+
+.g-section {
+  margin-top: 40px;
+}
+.g-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.g-section-head h2 {
+  margin: 0;
+}
+
+.g-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 16px;
+}
+@media (max-width: 480px) {
+  .g-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
+
+.g-card {
+  display: flex;
+  flex-direction: column;
+  color: var(--text);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  transition:
+    transform 0.15s,
+    border-color 0.15s;
+}
+.g-card:hover {
+  text-decoration: none;
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+.g-card-cover {
+  aspect-ratio: 2 / 3;
+  background: var(--bg-3);
+  overflow: hidden;
+}
+.g-card-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.g-card-body {
+  /* Grow to fill the card: cards in a row share the tallest card's height, and the tinted body
+     of a short-titled card would otherwise stop short of the bottom edge. */
+  flex: 1;
+  /* Vertical padding = gap, so the three spaces (above, between, below) come out equal. */
+  padding: 7px 10px;
+  display: flex;
+  flex-direction: column;
+  /* When a neighbour in the row is taller, share the extra room equally above the title,
+     between title and details, and below the details. */
+  justify-content: space-evenly;
+  gap: 7px;
+}
+/* Up to three lines; anything longer is in the hover banner. */
+.g-card-title {
+  font-weight: 600;
+  font-size: 0.92rem;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.g-card-meta {
+  font-size: 0.78rem;
+  color: var(--faint);
+}
+.g-card-votes {
+  font-size: 0.78rem;
+  color: var(--accent-2);
+  margin-top: 2px;
+}
+
+.g-skeleton {
+  background: linear-gradient(90deg, var(--bg-2), var(--bg-3), var(--bg-2));
+  background-size: 200% 100%;
+  animation: g-shimmer 1.2s infinite linear;
+  border-radius: var(--radius);
+}
+@keyframes g-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .g-skeleton {
+    animation: none;
+  }
+  .g-card {
+    transition: none;
+  }
+}
+
+/* ---------- level chips ---------- */
+
+.g-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid var(--line-2);
+  background: var(--bg-2);
+  white-space: nowrap;
+}
+.g-chip::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c, var(--faint));
+}
+.g-chip-plain::before {
+  display: none;
+}
+.g-badge {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 2px 9px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #0c0d18;
+}
+.g-badge-ed {
+  background: #5fd1e8;
+}
+
+/* ---------- anime page ---------- */
+
+.g-anime-head {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 28px;
+  align-items: start;
+}
+@media (max-width: 640px) {
+  .g-anime-head {
+    grid-template-columns: 110px 1fr;
+    gap: 16px;
+  }
+}
+.g-anime-cover {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  aspect-ratio: 2 / 3;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+}
+.g-anime-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.g-anime-alt {
+  color: var(--muted);
+  margin: -2px 0 10px;
+}
+.g-anime-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.g-synopsis {
+  color: var(--muted);
+  font-size: 0.95rem;
+  max-width: 70ch;
+  white-space: pre-line;
+}
+.g-synopsis.clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+@media (max-width: 640px) {
+  .g-synopsis-wrap {
+    grid-column: 1 / -1;
+  }
+}
+.g-linkish {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--accent-2);
+  cursor: pointer;
+}
+
+.g-jump {
+  display: flex;
+  gap: 8px;
+  margin: 28px 0 0;
+  flex-wrap: wrap;
+}
+
+.g-themes {
+  display: grid;
+  gap: 18px;
+  container: themes / inline-size;
+}
+
+/* Openings | Endings side by side once there's room; stacked on phones and small tablets. */
+@media (min-width: 1000px) {
+  .g-themes-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+  }
+  .g-jump {
+    display: none;
+  }
+}
+.g-themes-section {
+  scroll-margin-top: 80px;
+}
+.g-themes-section > h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 18px;
+}
+.g-count {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--faint);
+  font-weight: 500;
+}
+
+.g-theme {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 22px;
+}
+/* The card's info/stats split depends on the card's own width (half the page when Openings
+   and Endings sit side by side), so it's a container query rather than a media query. */
+@container themes (max-width: 640px) {
+  .g-theme {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.g-theme-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.g-theme-title h3 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+.g-theme-native {
+  color: var(--faint);
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+}
+.g-dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 14px;
+  margin: 0;
+  font-size: 0.92rem;
+}
+.g-dl dt {
+  color: var(--faint);
+}
+.g-dl dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.g-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+
+/* stats */
+
+.g-stats {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+.g-verdict {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.g-dial {
+  flex: none;
+  width: 84px;
+  height: 52px;
+}
+.g-verdict-text strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+}
+.g-verdict-text span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.g-bars {
+  display: grid;
+  gap: 5px;
+}
+.g-bar {
+  display: grid;
+  grid-template-columns: 9.5rem 1fr 3.2rem;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+}
+@media (max-width: 420px) {
+  .g-bar {
+    grid-template-columns: 6rem 1fr 2.6rem;
+  }
+  .g-bar-label-long {
+    display: none;
+  }
+}
+@media (min-width: 421px) {
+  .g-bar-label-short {
+    display: none;
+  }
+}
+.g-bar-track {
+  height: 9px;
+  border-radius: 99px;
+  background: var(--bg-3);
+  overflow: hidden;
+}
+.g-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--c);
+}
+.g-bar-n {
+  text-align: right;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.g-bar.mine .g-bar-label-long::after,
+.g-bar.mine .g-bar-label-short::after {
+  content: ' • you';
+  color: var(--accent-2);
+}
+
+.g-safe {
+  border: 1px solid var(--line);
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  font-size: 0.92rem;
+}
+.g-safe strong {
+  color: var(--text);
+}
+.g-hist {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 36px;
+  margin-top: 8px;
+}
+.g-hist span {
+  flex: 1;
+  min-width: 2px;
+  background: var(--accent);
+  opacity: 0.75;
+  border-radius: 2px 2px 0 0;
+}
+.g-hist-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--faint);
+}
+
+.g-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+/* vote form */
+
+.g-form {
+  grid-column: 1 / -1;
+  border-top: 1px dashed var(--line-2);
+  padding-top: 16px;
+  display: grid;
+  gap: 16px;
+}
+.g-form fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.g-form legend {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.g-levels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+}
+.g-level {
+  position: relative;
+  display: block;
+  cursor: pointer;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  padding: 10px 12px 10px 14px;
+  background: var(--bg);
+  border-left: 4px solid var(--c);
+}
+.g-level input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.g-level strong {
+  display: block;
+  font-size: 0.92rem;
+}
+.g-level span {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.35;
+  margin-top: 2px;
+}
+.g-level:has(input:checked) {
+  background: color-mix(in srgb, var(--c) 14%, var(--bg));
+  border-color: var(--c);
+}
+.g-level:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.g-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+.g-field {
+  display: grid;
+  gap: 6px;
+  font-size: 0.92rem;
+}
+.g-field > span {
+  font-weight: 600;
+}
+.g-field small {
+  color: var(--faint);
+}
+.g-field textarea {
+  min-height: 74px;
+  resize: vertical;
+}
+.g-form-status {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.g-form-status.err {
+  color: #ff8aa0;
+}
+
+.g-empty {
+  color: var(--muted);
+  padding: 28px;
+  text-align: center;
+  border: 1px dashed var(--line-2);
+  border-radius: var(--radius-lg);
+}
+
+/* ---------- legal / prose pages ---------- */
+
+.g-prose {
+  max-width: 70ch;
+  margin: 0 auto;
+}
+.g-prose h2 {
+  margin-top: 1.8em;
+}
+.g-prose h3 {
+  margin-top: 1.3em;
+}
+.g-prose ul {
+  padding-left: 1.3em;
+  margin: 0 0 1em;
+}
+.g-prose li {
+  margin-bottom: 0.35em;
+}
+
+/* ---------- spoiler colour-coding ---------- */
+
+/* Anime cards: border, a bar under the cover and a level pill, in the majority level's colour. */
+.g-card-cover {
+  position: relative;
+}
+.g-card.rated {
+  border-color: color-mix(in srgb, var(--c) 65%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--c) 25%, transparent);
+}
+.g-card.rated:hover {
+  border-color: var(--c);
+}
+.g-card.rated .g-card-cover {
+  border-bottom: 4px solid var(--c);
+}
+.g-card-level {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #0c0d18;
+  background: var(--c);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
+}
+.g-card-level small {
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+/* OP/ED cards on the anime page. */
+.g-theme.rated {
+  border-color: color-mix(in srgb, var(--c) 55%, var(--line));
+  border-left: 5px solid var(--c);
+  background: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--c) 12%, var(--bg-2)) 0%,
+    var(--bg-2) 55%
+  );
+}
+
+/* ---------- bookmarks & profile ---------- */
+
+.g-bookmark[aria-pressed='true'] {
+  border-color: var(--lv2);
+  color: var(--lv2);
+}
+.g-bookmark svg {
+  width: 18px;
+  height: 18px;
+}
+.g-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-3);
+}
+/* Header profile button: a pill (avatar + name + chevron) so it reads as clickable. */
+.g-user-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 4px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: var(--bg-2);
+  color: var(--text);
+  font-weight: 600;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.g-user-link:not(:has(.g-avatar)) {
+  padding-left: 12px;
+}
+.g-user-link::after {
+  content: '';
+  width: 7px;
+  height: 7px;
+  margin-left: 2px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(-45deg);
+}
+.g-user-link:hover {
+  text-decoration: none;
+  background: var(--bg-3);
+  border-color: var(--accent);
+}
+.g-user-link:hover::after {
+  border-color: var(--accent-2);
+}
+.g-user-link .g-user {
+  color: var(--text);
+}
+.g-profile-head {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.g-profile-head .g-avatar {
+  width: 72px;
+  height: 72px;
+}
+.g-profile-head h1 {
+  margin: 0;
+}
+.g-tabs {
+  display: flex;
+  gap: 6px;
+  margin-top: 28px;
+  border-bottom: 1px solid var(--line);
+}
+.g-tab {
+  font: inherit;
+  font-weight: 600;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  padding: 10px 14px;
+  cursor: pointer;
+  margin-bottom: -1px;
+}
+.g-tab[aria-selected='true'] {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+.g-card-wrap {
+  position: relative;
+}
+.g-card-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--line-2);
+  background: rgb(12 13 24 / 0.85);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+.g-card-remove:hover {
+  background: #ef4565;
+  border-color: #ef4565;
+}
+
+/* ---------- home: sort + level filter + feed ---------- */
+
+/* Sort sits on its own row under the search bar so it doesn't read as part of the search. */
+.g-sortbar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.g-sortbar select {
+  padding: 6px 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.g-sortbar + .g-legend {
+  margin-top: 12px;
+}
+
+/* Card [hidden] must beat .g-card { display: flex }. */
+.g-card[hidden],
+.g-section[hidden] {
+  display: none;
+}
+
+.g-chip-filter {
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    opacity 0.15s;
+}
+.g-chip-filter:hover:not(:disabled) {
+  border-color: var(--c);
+}
+.g-chip-filter:disabled {
+  cursor: default;
+}
+.g-chip-filter[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--c) 22%, var(--bg-2));
+  border-color: var(--c);
+}
+.g-chip-filter[aria-pressed='true']::before {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 35%, transparent);
+}
+/* While a filter is on, dim the levels that aren't selected. */
+.g-legend.active .g-chip-filter[aria-pressed='false'] {
+  opacity: 0.5;
+}
+.g-legend.active .g-chip-filter[aria-pressed='false']:hover {
+  opacity: 1;
+}
+.g-filter-clear {
+  font-size: 0.85rem;
+  padding: 0 6px;
+}
+
+.g-feed-status {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-height: 48px;
+  margin-top: 28px;
+  text-align: center;
+}
+
+/* ---------- header search suggestions ---------- */
+
+.g-header-search {
+  position: relative;
+}
+.g-suggest {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
+  background: var(--bg-2);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.5);
+}
+.g-suggest[hidden] {
+  display: none;
+}
+.g-suggest a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  color: var(--text);
+}
+.g-suggest a:hover,
+.g-suggest [aria-selected='true'] a {
+  text-decoration: none;
+  background: var(--bg-3);
+}
+.g-suggest [aria-selected='true'] a {
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.g-suggest-cover {
+  flex: none;
+  width: 36px;
+  height: 52px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--bg-3);
+}
+.g-suggest-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.g-suggest-text {
+  display: grid;
+  min-width: 0;
+}
+.g-suggest-title {
+  font-weight: 600;
+  font-size: 0.92rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.g-suggest-meta {
+  font-size: 0.78rem;
+  color: var(--faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.g-suggest-all a {
+  justify-content: center;
+  color: var(--accent-2);
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 10px 8px;
+}
+.g-suggest-all {
+  border-top: 1px solid var(--line);
+  margin-top: 4px;
+  padding-top: 4px;
+}
+.g-suggest-status {
+  padding: 10px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  text-align: center;
+}
+
+/* ---------- full-width pages ---------- */
+
+.gauge-wide .g-wrap {
+  max-width: none;
+}
+@media (min-width: 1400px) {
+  .gauge-wide {
+    --gutter: 44px;
+  }
+}
+
+/* ---------- compact OP/ED cards (sections with more than 3 songs) ---------- */
+
+.g-theme.compact {
+  display: block;
+  padding: 0;
+}
+.g-theme-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.g-theme-summary:hover {
+  background: rgb(255 255 255 / 0.03);
+}
+.g-sum-main {
+  display: grid;
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.g-sum-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.02rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.g-sum-sub {
+  font-size: 0.8rem;
+  color: var(--faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.g-sum-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.g-sum-safe {
+  font-size: 0.8rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.g-chevron {
+  width: 9px;
+  height: 9px;
+  margin: 0 4px 4px 2px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg);
+}
+.g-theme-summary:hover .g-chevron {
+  border-color: var(--accent-2);
+}
+.g-toggle-all {
+  margin-left: auto;
+  font-size: 0.85rem;
+  font-family: var(--font-body);
+  font-weight: 600;
+}
+.g-chevron {
+  margin-left: auto;
+}
+@media (max-width: 600px) {
+  /* The header wraps to two rows on phones; keep jump-link targets clear of it. */
+  .g-themes-section {
+    scroll-margin-top: 140px;
+  }
+}
+
+/* Expanded long-section cards: the summary row becomes a full-width header and the arrow flips. */
+.g-theme-head {
+  grid-column: 1 / -1;
+  margin: -18px -18px -8px;
+  width: calc(100% + 36px);
+  border-bottom: 1px solid var(--line);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.g-toggled .g-theme-summary[aria-expanded='true'] .g-chevron {
+  animation: g-chevron-up 0.2s ease;
+}
+.g-toggled .g-theme-summary[aria-expanded='false'] .g-chevron {
+  animation: g-chevron-down 0.2s ease;
+}
+@keyframes g-chevron-up {
+  from {
+    transform: rotate(45deg);
+  }
+}
+@keyframes g-chevron-down {
+  from {
+    transform: rotate(-135deg);
+  }
+}
+.g-theme-summary[aria-expanded='true'] .g-chevron {
+  transform: rotate(-135deg);
+  margin-bottom: -4px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .g-toggled .g-chevron {
+    animation: none !important;
+  }
+}
+
+/* ---------- title language toggle (header) ---------- */
+
+.g-title-toggle {
+  display: inline-flex;
+  flex: none;
+  padding: 2px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: var(--bg-2);
+}
+.g-title-toggle button {
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.g-title-toggle button:hover {
+  color: var(--text);
+}
+.g-title-toggle button[aria-pressed='true'] {
+  background: var(--accent);
+  color: #0c0d18;
+}
+@media (max-width: 600px) {
+  /* Row 1: logo + account. Row 2: search box + title toggle. */
+  .g-header-search {
+    flex: 1 1 160px;
+  }
+  .g-title-toggle {
+    order: 4;
+  }
+}
+
+/* ---------- interface language ---------- */
+
+/* <T> and data-lang blocks render both languages; show the one matching <html lang>. */
+html[lang='ja'] [data-lang='en'],
+html:not([lang='ja']) [data-lang='ja'] {
+  display: none !important;
+}
+html[lang='ja'] body.gauge {
+  font-family: var(--font-body), 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif;
+}
+
+/* Rated anime cards: the whole lower half takes the level colour as a strong tint, dark enough
+   that white text stays readable for every level (yellow and light green included). */
+.g-card.rated .g-card-body {
+  background: color-mix(in srgb, var(--c) 34%, #0e0f1c);
+}
+.g-card.rated .g-card-title {
+  color: #fff;
+}
+.g-card.rated .g-card-meta {
+  color: rgb(255 255 255 / 0.72);
+}
+.g-card.rated .g-card-votes {
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Full anime name on hover / keyboard focus: a banner across the top of the cover, so the level
+   pill at the bottom stays visible. Titles below are clamped to two lines. */
+.g-card-fulltitle {
+  position: absolute;
+  inset: 0 0 auto;
+  padding: 10px 10px 22px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  line-height: 1.3;
+  color: #fff;
+  background: linear-gradient(rgb(8 9 18 / 0.94) 0%, rgb(8 9 18 / 0.88) 70%, transparent);
+  overflow-wrap: anywhere;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+  pointer-events: none;
+}
+.g-card:hover .g-card-fulltitle,
+.g-card:focus-visible .g-card-fulltitle {
+  opacity: 1;
+  transform: none;
+}
+@media (hover: none) {
+  /* Touch screens have no hover; tapping opens the anime page, which shows the full name. */
+  .g-card-fulltitle {
+    display: none;
+  }
+}
+
+/* ---------- card size toggle ---------- */
+
+.g-grid-toggle button {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 9px;
+}
+.g-grid-toggle svg {
+  width: 14px;
+  height: 14px;
+}
+@media (max-width: 600px) {
+  /* Phones: both toggles share the second header row with the search box. */
+  .g-grid-toggle {
+    order: 5;
+  }
+}
+
+/* ---------- big cards ---------- */
+
+html[data-grid='large'] .g-grid {
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 24px;
+}
+html[data-grid='large'] .g-card-body {
+  padding: 11px 14px;
+  gap: 11px;
+}
+html[data-grid='large'] .g-card-title {
+  font-size: 1.1rem;
+  line-height: 1.3;
+}
+html[data-grid='large'] .g-card-meta,
+html[data-grid='large'] .g-card-votes {
+  font-size: 0.9rem;
+}
+html[data-grid='large'] .g-card-level {
+  left: 8px;
+  bottom: 8px;
+  padding: 3px 10px;
+  font-size: 0.85rem;
+}
+html[data-grid='large'] .g-card-fulltitle {
+  padding: 12px 12px 26px;
+  font-size: 1.02rem;
+}
+
+/* Phones: big cards become a one-column list: cover thumbnail on the left, text beside it. */
+@media (max-width: 480px) {
+  html[data-grid='large'] .g-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  html[data-grid='large'] .g-card {
+    flex-direction: row;
+  }
+  html[data-grid='large'] .g-card-cover {
+    flex: none;
+    width: 108px;
+    align-self: stretch;
+  }
+  html[data-grid='large'] .g-card.rated .g-card-cover {
+    border-bottom: 0;
+    border-right: 4px solid var(--c);
+  }
+  html[data-grid='large'] .g-card-body {
+    min-width: 0;
+    justify-content: center;
+  }
+  html[data-grid='large'] .g-card-level {
+    left: 6px;
+    bottom: 6px;
+    font-size: 0.74rem;
+    padding: 2px 7px;
+  }
+  /* The whole title fits in the list layout, so no banner needed. */
+  html[data-grid='large'] .g-card-title {
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+  }
+  html[data-grid='large'] .g-card-fulltitle {
+    display: none;
+  }
+}
+
+/* Phone header, final layout (overrides the earlier phone rules):
+   row 1 = logo + account, row 2 = title-language and card-size toggles, row 3 = search. */
+@media (max-width: 600px) {
+  .g-header-inner {
+    column-gap: 8px;
+    row-gap: 10px;
+  }
+  .g-header-inner .g-brand {
+    order: 1;
+  }
+  .g-header-inner .g-auth {
+    order: 2;
+    margin-left: auto;
+  }
+  .g-header-inner .g-title-toggle {
+    order: 3;
+  }
+  .g-header-inner .g-grid-toggle {
+    order: 4;
+  }
+  .g-header-inner .g-header-search {
+    order: 5;
+    flex: 1 1 100%;
+    max-width: none;
+  }
+}

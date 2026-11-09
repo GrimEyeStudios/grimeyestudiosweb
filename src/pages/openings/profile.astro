@@ -1,0 +1,216 @@
+---
+/** /openings/profile/ — the signed-in user's bookmarks and rated anime. */
+import GaugeLayout from '../../layouts/GaugeLayout.astro';
+---
+
+<GaugeLayout title="Your profile" titleJa="プロフィール">
+  <div id="profile">
+    <div class="g-profile-head" aria-hidden="true">
+      <div class="g-avatar g-skeleton"></div>
+      <div class="g-skeleton" style="height:32px;width:220px"></div>
+    </div>
+  </div>
+</GaugeLayout>
+
+<script>
+  import {
+    votingEnabled,
+    currentUser,
+    signOut,
+    userLabel,
+    userAvatar,
+    myBookmarks,
+    myRatedAnime,
+    setBookmark,
+  } from '../../openings/db';
+  import { animeBySlugs, displayTitle, type AnimeCard } from '../../openings/animethemes';
+  import { animeCard, colorCards, skeletonCards } from '../../openings/cards';
+  import { gauge } from '../../openings/config';
+  import { $, h, mount } from '../../openings/dom';
+  import { t } from '../../openings/i18n';
+  import type { User } from '@supabase/supabase-js';
+
+  const root = $('#profile')!;
+  type Tab = 'bookmarks' | 'rated';
+  let tab: Tab = location.hash === '#rated' ? 'rated' : 'bookmarks';
+  let shownFor: string | null | undefined;
+
+  /** AnimeThemes caps query size, so fetch covers 25 at a time and keep the input order. */
+  async function fetchCards(slugs: string[]): Promise<AnimeCard[]> {
+    const out: AnimeCard[] = [];
+    for (let i = 0; i < slugs.length; i += 25)
+      out.push(...(await animeBySlugs(slugs.slice(i, i + 25))));
+    const order = new Map(slugs.map((s, i) => [s, i]));
+    return out.sort((a, b) => order.get(a.slug)! - order.get(b.slug)!);
+  }
+
+  function empty(msg: string, link = true) {
+    return h(
+      'div',
+      { class: 'g-empty', style: 'grid-column:1/-1' },
+      h('p', null, msg),
+      link
+        ? h('a', { class: 'g-btn g-btn-primary', href: `${gauge.base}/` }, t('findAnime'))
+        : null,
+    );
+  }
+
+  async function renderBookmarks(grid: HTMLElement, count: HTMLElement) {
+    mount(grid, skeletonCards(6));
+    const rows = await myBookmarks();
+    count.textContent = String(rows.length);
+    if (!rows.length) return mount(grid, empty(t('noBookmarks')));
+    const list = await fetchCards(rows.map((r) => r.anime_slug));
+    mount(
+      grid,
+      list.map((a) => {
+        const wrap = h('div', { class: 'g-card-wrap' }, animeCard(a));
+        const remove = h(
+          'button',
+          {
+            class: 'g-card-remove',
+            type: 'button',
+            title: t('removeBookmark'),
+            'aria-label': t('removeBookmarkFor', { title: displayTitle(a) }),
+          },
+          '✕',
+        );
+        remove.addEventListener('click', async () => {
+          remove.setAttribute('disabled', '');
+          try {
+            await setBookmark(a.slug, false);
+            wrap.remove();
+            count.textContent = String(Number(count.textContent) - 1);
+            if (!grid.querySelector('.g-card')) mount(grid, empty(t('noBookmarks')));
+          } catch {
+            remove.removeAttribute('disabled');
+          }
+        });
+        wrap.append(remove);
+        return wrap;
+      }),
+    );
+    colorCards(grid);
+  }
+
+  async function renderRated(grid: HTMLElement, count: HTMLElement) {
+    mount(grid, skeletonCards(6));
+    const rows = await myRatedAnime();
+    count.textContent = String(rows.length);
+    if (!rows.length) return mount(grid, empty(t('noRated')));
+    const counts = new Map(rows.map((r) => [r.anime_slug, r.count]));
+    const list = await fetchCards(rows.map((r) => r.anime_slug));
+    mount(
+      grid,
+      list.map((a) => animeCard(a, t('youRated', { n: counts.get(a.slug) ?? 0 }))),
+    );
+    colorCards(grid);
+  }
+
+  async function render(user: User | null) {
+    const key = user?.id ?? null;
+    if (key === shownFor) return;
+    shownFor = key;
+
+    if (!votingEnabled) return mount(root, h('p', { class: 'g-notice' }, t('accountsOff')));
+
+    if (!user)
+      return mount(
+        root,
+        h(
+          'div',
+          { class: 'g-empty' },
+          h('h1', null, t('profileTitle')),
+          h('p', null, t('profileSignInBlurb')),
+          h(
+            'button',
+            {
+              class: 'g-btn g-btn-primary',
+              type: 'button',
+              onclick: () => (window as unknown as { gaugeSignIn: () => void }).gaugeSignIn(),
+            },
+            t('signIn'),
+          ),
+        ),
+      );
+
+    const avatar = userAvatar(user);
+    const provider = String(user.app_metadata?.provider ?? '');
+    const providerName = provider ? provider[0].toUpperCase() + provider.slice(1) : '';
+    const bookmarksCount = h('span', { class: 'g-count' }, '…');
+    const ratedCount = h('span', { class: 'g-count' }, '…');
+    const grid = h('div', { class: 'g-grid', role: 'tabpanel', style: 'margin-top:20px' });
+
+    const tabBtn = (id: Tab, label: string, countEl: HTMLElement) =>
+      h(
+        'button',
+        {
+          class: 'g-tab',
+          type: 'button',
+          role: 'tab',
+          id: `tab-${id}`,
+          'aria-selected': String(tab === id),
+          onclick: () => select(id),
+        },
+        `${label} `,
+        countEl,
+      );
+    const tabs = h(
+      'div',
+      { class: 'g-tabs', role: 'tablist' },
+      tabBtn('bookmarks', t('bookmarks'), bookmarksCount),
+      tabBtn('rated', t('rated'), ratedCount),
+    );
+
+    function select(next: Tab) {
+      tab = next;
+      history.replaceState(null, '', next === 'rated' ? '#rated' : location.pathname);
+      tabs
+        .querySelectorAll('.g-tab')
+        .forEach((b) => b.setAttribute('aria-selected', String(b.id === `tab-${next}`)));
+      grid.setAttribute('aria-labelledby', `tab-${next}`);
+      const run = next === 'rated' ? renderRated : renderBookmarks;
+      run(grid, next === 'rated' ? ratedCount : bookmarksCount).catch((e) =>
+        mount(grid, empty(t('couldntLoadList', { msg: (e as Error).message }), false)),
+      );
+    }
+
+    mount(
+      root,
+      h(
+        'div',
+        { class: 'g-profile-head' },
+        avatar
+          ? h('img', { class: 'g-avatar', src: avatar, alt: '', referrerpolicy: 'no-referrer' })
+          : h('div', { class: 'g-avatar' }),
+        h(
+          'div',
+          { style: 'flex:1;min-width:0' },
+          h('h1', null, userLabel(user)),
+          providerName
+            ? h('div', { class: 'g-faint' }, t('signedInWith', { provider: providerName }))
+            : null,
+        ),
+        h(
+          'button',
+          { class: 'g-btn g-btn-ghost', type: 'button', onclick: () => signOut() },
+          t('signOut'),
+        ),
+      ),
+      tabs,
+      grid,
+    );
+
+    // Fill both counts up front; the selected tab renders its grid.
+    myBookmarks()
+      .then((r) => (bookmarksCount.textContent = String(r.length)))
+      .catch(() => {});
+    myRatedAnime()
+      .then((r) => (ratedCount.textContent = String(r.length)))
+      .catch(() => {});
+    select(tab);
+  }
+
+  currentUser().then(render);
+  window.addEventListener('gauge:auth', (e) => render((e as CustomEvent<User | null>).detail));
+</script>
