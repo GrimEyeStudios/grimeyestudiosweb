@@ -1,0 +1,242 @@
+---
+import GaugeLayout from '../../layouts/GaugeLayout.astro';
+import { gauge } from '../../openings/config';
+import { site } from '../../site.config';
+
+const updated = 'November 9, 2026';
+---
+
+<GaugeLayout
+  title="Privacy policy"
+  titleJa="プライバシーポリシー"
+  description={`How ${gauge.name} handles your data.`}
+>
+  <article class="g-prose" data-lang="ja" lang="ja">
+    <h1>プライバシーポリシー</h1>
+    <p class="g-faint">最終更新日：2026年11月9日</p>
+    <p class="g-notice">この日本語版は参考訳です。内容に違いがある場合は英語版が優先されます。</p>
+
+    <p>
+      {gauge.nameJa}（<a href={`${gauge.base}/`}>grimeyestudios.com{gauge.base}/</a>）は、
+      {site.owner}
+      （Grimeye
+      Studios）が運営する小規模なコミュニティサイトです。このページでは、収集するデータとその扱いについて説明します。要約すると、ログイン情報と投稿された評価を保存しますが、評価の横に名前を表示することはなく、データを販売・共有することもありません。
+    </p>
+
+    <h2>収集する情報</h2>
+    <h3>閲覧のみの場合</h3>
+    <p>
+      あなたに関する情報は一切保存しません。アクセス解析、広告、トラッキングCookieは使用していません。アニメや曲のデータはブラウザが
+      <a href="https://animethemes.moe" rel="noopener">
+        AnimeThemes.moe
+      </a>{' '}
+      と
+      <a href="https://anilist.co" rel="noopener">
+        AniList
+      </a>
+      から直接読み込むため、通常のウェブサイトと同様にこれらのサービスにはIPアドレスが送信されます。その扱いは各サービスのプライバシーポリシーに従います。
+    </p>
+
+    <h3>ログインした場合</h3>
+    <p>DiscordまたはGoogleでログインすると、以下の情報を受け取り保存します：</p>
+    <ul>
+      <li>ログインサービスから発行される固有のアカウントID</li>
+      <li>メールアドレス</li>
+      <li>表示名とプロフィール画像のURL（ログインサービスから提供される場合）</li>
+    </ul>
+    <p>
+      要求するのは基本的なプロフィール情報のみです。Discordのサーバー、メッセージ、連絡先や、Googleのファイルを見ることはできません。
+    </p>
+
+    <h3>投稿した評価</h3>
+    <p>評価したオープニング・エンディングごとに、以下を保存します：</p>
+    <ul>
+      <li>選んだネタバレ度</li>
+      <li>何話から見て大丈夫か（任意）</li>
+      <li>選んだ曲のジャンル（任意）</li>
+      <li>対象のアニメと曲、評価した日時</li>
+    </ul>
+
+    <h3>ブックマーク</h3>
+    <p>ブックマークしたアニメとその日時。ブックマークはあなた本人しか見られません。</p>
+
+    <h2>他の人に見える情報</h2>
+    <p>
+      合計値のみです（例：「185人がストーリーのネタバレと評価」）。名前、メールアドレス、アカウントID、個々の評価やブックマークがサイト上に表示されることはなく、他のユーザーが調べることもできません。
+    </p>
+
+    <h2>保存方法</h2>
+    <p>
+      {'アカウントと評価は、データベースを提供する'}
+      <a href="https://supabase.com" rel="noopener">
+        Supabase
+      </a>
+      {'に保存されます。サイト自体はGitHub Pagesでホストされています。'}
+    </p>
+    <p>
+      セキュリティのため、Supabaseはログインの記録（使用されたIPアドレスやブラウザの情報を含む）をログに残します。
+    </p>
+    <p>
+      また、ブラウザのローカルストレージ（Cookieではありません）に、ログインセッション（ログアウトすると削除）、タイトルの表示言語の設定、サイトで表示したアニメの日本語・英語タイトル（再検索を避けるため）を保存します。これらはブラウザでこのサイトのデータを消去すればいつでも削除できます。
+    </p>
+    <p>
+      曲を評価すると、その曲がそのアニメのものかどうかをデータベースがAnimeThemes.moeに確認します。送信されるのはアニメのIDのみで、あなたに関する情報は含まれません。
+    </p>
+    <p>
+      データを販売したり、広告主と共有したり、このサイトの運営以外の目的で使用したりすることはありません。
+    </p>
+
+    <h2>あなたができること</h2>
+    <ul>
+      <li>
+        評価はアニメのページから、ブックマークはプロフィールから、いつでも編集・削除できます。
+      </li>
+      <li>
+        アカウントと関連するすべてのデータを削除したい場合は、ログインに使ったメールアドレスから
+        <a href={`mailto:${site.email}`}>{site.email}</a> までご連絡ください。30日以内に削除します。
+      </li>
+      <li>保有しているあなたのデータのコピーも、同じアドレスで請求できます。</li>
+    </ul>
+    <p>
+      <a href={`${gauge.base}/terms/`}>利用規約</a>
+      に違反する評価（不正な水増しなど）は削除される場合があります。
+    </p>
+
+    <h2>お子さまについて</h2>
+    <p>
+      {gauge.nameJa}
+      は13歳未満のお子さまを対象としていません。ログインにはDiscordまたはGoogleの年齢制限を満たす必要があります。
+    </p>
+
+    <h2>変更について</h2>
+    <p>
+      このポリシーを変更した場合は、上部の日付も更新します。大きな変更はサイト上でお知らせします。
+    </p>
+
+    <h2>お問い合わせ</h2>
+    <p>
+      ご質問は <a href={`mailto:${site.email}`}>{site.email}</a> まで。
+    </p>
+  </article>
+
+  <article class="g-prose" data-lang="en">
+    <h1>Privacy policy</h1>
+    <p class="g-faint">Last updated {updated}</p>
+
+    <p>
+      {gauge.name} (<a href={`${gauge.base}/`}>grimeyestudios.com{gauge.base}/</a>) is a small
+      community site run by {site.owner} (Grimeye Studios). This page explains what data it collects
+      and what happens to it. The short version: we store your login and the ratings you submit, we
+      never show your name next to them, and we don't sell or share anything.
+    </p>
+
+    <h2>What we collect</h2>
+    <h3>If you just browse</h3>
+    <p>
+      Nothing is stored about you. There are no analytics, ads or tracking cookies. Your browser
+      loads anime and song data directly from{' '}
+      <a href="https://animethemes.moe" rel="noopener">
+        AnimeThemes.moe
+      </a>{' '}
+      and{' '}
+      <a href="https://anilist.co" rel="noopener">
+        AniList
+      </a>
+      , so those services see your IP address like any website would. Their own privacy policies
+      apply to that.
+    </p>
+
+    <h3>If you sign in</h3>
+    <p>When you sign in with Discord or Google, we receive and store:</p>
+    <ul>
+      <li>a unique account ID from the provider,</li>
+      <li>your email address,</li>
+      <li>your display name and profile picture URL, if the provider sends them.</li>
+    </ul>
+    <p>
+      We only ask for basic profile access. We can't see your Discord servers, messages, contacts or
+      Google files.
+    </p>
+
+    <h3>Ratings you submit</h3>
+    <p>For each opening or ending you rate, we store:</p>
+    <ul>
+      <li>the spoiler level you chose,</li>
+      <li>the episode you said it's safe to watch after (optional),</li>
+      <li>the song genre you picked (optional),</li>
+      <li>which anime and song it's for, and when you rated it.</li>
+    </ul>
+
+    <h3>Bookmarks</h3>
+    <p>The anime you bookmark, and when. Only you can see your bookmarks.</p>
+
+    <h2>What other people can see</h2>
+    <p>
+      Only totals, for example "185 users say plot spoilers". Your name, email, account ID,
+      individual ratings and bookmarks are never shown on the site and can't be looked up by other
+      users.
+    </p>
+
+    <h2>How it's stored</h2>
+    <p>
+      {'Accounts and ratings are stored with '}
+      <a href="https://supabase.com" rel="noopener">
+        Supabase
+      </a>
+      {', which hosts the database. The site itself is hosted on GitHub Pages.'}
+    </p>
+    <p>
+      For security, Supabase also keeps logs of sign-ins, including the IP address and browser
+      details used.
+    </p>
+    <p>
+      Your browser stores a few things locally (in local storage, not cookies): your login session
+      (removed when you sign out), your title-language choice, and the Japanese/English titles of
+      anime you've seen on the site, so they don't have to be looked up again. You can clear these
+      at any time by clearing this site's data in your browser.
+    </p>
+    <p>
+      When you rate a song, our database asks AnimeThemes.moe whether that song belongs to that
+      anime. Only the anime's ID is sent, nothing about you.
+    </p>
+    <p>
+      We don't sell your data, share it with advertisers, or use it for anything other than running
+      this site.
+    </p>
+
+    <h2>Your choices</h2>
+    <ul>
+      <li>
+        You can edit or remove any of your ratings from the anime's page, and remove bookmarks from
+        your profile, at any time.
+      </li>
+      <li>
+        To delete your account and everything linked to it, email{' '}
+        <a href={`mailto:${site.email}`}>{site.email}</a> from the address you signed in with. It
+        will be deleted within 30 days.
+      </li>
+      <li>You can also ask for a copy of the data we hold about you at the same address.</li>
+    </ul>
+    <p>
+      Ratings that break the <a href={`${gauge.base}/terms/`}>terms</a> (for example vote stuffing)
+      may be removed.
+    </p>
+
+    <h2>Children</h2>
+    <p>
+      {gauge.name} isn't aimed at children under 13, and you need to meet Discord's or Google's
+      minimum age to sign in.
+    </p>
+
+    <h2>Changes</h2>
+    <p>
+      If this policy changes, the date at the top will change too. Big changes will be announced on
+      the site.
+    </p>
+
+    <h2>Contact</h2>
+    <p>
+      Questions: <a href={`mailto:${site.email}`}>{site.email}</a>
+    </p>
+  </article>
+</GaugeLayout>
