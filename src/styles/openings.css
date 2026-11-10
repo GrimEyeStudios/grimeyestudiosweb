@@ -1565,3 +1565,49 @@ html[data-grid='large'] .g-card-fulltitle {
     max-width: none;
   }
 }
+
+/* ---------- 18+ content ---------- */
+
+.g-adult-toggle {
+  flex: none;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-2);
+  color: var(--muted);
+  cursor: pointer;
+}
+.g-adult-toggle:hover {
+  color: var(--text);
+}
+.g-adult-toggle[aria-pressed='true'] {
+  background: var(--lv4);
+  border-color: var(--lv4);
+  color: #fff;
+}
+
+/* Adult-themed anime are hidden unless 18+ content is on. */
+html:not([data-adult='on']) [data-adult='1'] {
+  display: none !important;
+}
+/* Covers stay blurred until the adult check for that anime is done (usually instant: cached). */
+[data-adult-pending] img {
+  filter: blur(16px);
+}
+.g-card-cover img,
+.g-suggest-cover img {
+  transition: filter 0.2s;
+}
+
+@media (max-width: 600px) {
+  /* Phone header: the 18+ button joins the toggles on row 2; search moves to row 3. */
+  .g-header-inner .g-adult-toggle {
+    order: 5;
+  }
+  .g-header-inner .g-header-search {
+    order: 6;
+  }
+}

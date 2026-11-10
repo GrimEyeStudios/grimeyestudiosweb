@@ -29,10 +29,12 @@ import GaugeLayout from '../../layouts/GaugeLayout.astro';
     artistLine,
     maxEpisode,
     firstEpisode,
+    isAdultMedia,
     type AnimeDetail,
     type AniListInfo,
     type Theme,
   } from '../../openings/animethemes';
+  import { adultOn } from '../../openings/cards';
   import {
     votingEnabled,
     currentUser,
@@ -964,6 +966,39 @@ import GaugeLayout from '../../layouts/GaugeLayout.astro';
     anime.title.native ||= ani?.title?.native ?? null;
     anime.title.english ||= ani?.title?.english ?? null;
     setDocTitle();
+
+    // Adult-themed (e.g. ecchi) and 18+ content is off: show a gate instead of the page.
+    if (isAdultMedia(ani) && !adultOn()) {
+      mount(
+        page,
+        h(
+          'div',
+          { class: 'g-empty g-adult-gate' },
+          titled('h1', null, anime.title),
+          h('p', null, h('strong', null, t('adultGateTitle'))),
+          h('p', null, t('adultGateBody')),
+          h(
+            'div',
+            { class: 'g-actions', style: 'justify-content:center' },
+            h(
+              'button',
+              {
+                class: 'g-btn g-btn-primary',
+                type: 'button',
+                onclick: () => (window as unknown as { gaugeAdultOn: () => void }).gaugeAdultOn(),
+              },
+              t('adultGateButton'),
+            ),
+            h('a', { class: 'g-btn g-btn-ghost', href: `${gauge.base}/` }, t('adultGateBack')),
+          ),
+        ),
+      );
+      // Once 18+ content is switched on (here or from the header), load the real page.
+      window.addEventListener('gauge:adult', (e) => {
+        if ((e as CustomEvent<boolean>).detail) location.reload();
+      });
+      return;
+    }
 
     const known = Math.max(
       0,

@@ -49,7 +49,7 @@ const prefTitleKey = {
 // toggle means a Japanese interface. The storage key must match src/openings/titles.ts. Kept
 // identical on every page so the Content-Security-Policy can allow it by hash.
 // Also applies the saved card size (data-grid) before first paint, so cards don't jump.
-const langScript = `try{var d=document.documentElement;if(localStorage.getItem('spoiler-gauge:titles')==='native'){d.lang='ja';if(d.dataset.titleJa)document.title=d.dataset.titleJa}if(localStorage.getItem('spoiler-gauge:grid')==='large')d.dataset.grid='large'}catch(e){}`;
+const langScript = `try{var d=document.documentElement;if(localStorage.getItem('spoiler-gauge:titles')==='native'){d.lang='ja';if(d.dataset.titleJa)document.title=d.dataset.titleJa}if(localStorage.getItem('spoiler-gauge:grid')==='large')d.dataset.grid='large';if(localStorage.getItem('spoiler-gauge:adult')==='on')d.dataset.adult='on'}catch(e){}`;
 const langScriptHash = createHash('sha256').update(langScript).digest('base64');
 
 // Content-Security-Policy: Spoiler Gauge pages may only run this site's own scripts (plus the
@@ -178,6 +178,16 @@ const favicon =
             </button>
           </div>
         )}
+        <button
+          type="button"
+          id="g-adult"
+          class="g-adult-toggle"
+          aria-pressed="false"
+          title="Show adult-themed anime such as ecchi (18+)"
+          data-i18n-title="adultToggleTitle"
+        >
+          18+
+        </button>
         {headerSearch && (
           <form class="g-header-search" action={`${gauge.base}/`} method="get" role="search">
             <label class="sr-only" for="hq">
@@ -314,6 +324,34 @@ const favicon =
         <button class="g-btn g-btn-ghost g-dialog-close" value="close">
           <T en="Cancel" ja="キャンセル" />
         </button>
+      </form>
+    </dialog>
+
+    <dialog id="g-age" class="g-dialog" aria-labelledby="g-age-title">
+      <form method="dialog">
+        <h2 id="g-age-title">
+          <T en="Adult content (18+)" ja="成人向けコンテンツ（18歳以上）" />
+        </h2>
+        <p class="g-muted">
+          <T
+            en="Some anime are adult-themed (for example ecchi). Their cover art and pages can show sexual content and nudity. Only show them if you are 18 or older."
+            ja="一部のアニメは成人向け（エッチなど）です。カバー画像やページに性的な表現や露出が含まれる場合があります。18歳以上の方のみ表示してください。"
+          />
+        </p>
+        <div class="g-signin-buttons">
+          <button class="g-btn g-btn-primary" value="yes">
+            <T en="I'm 18 or older, show them" ja="18歳以上です。表示する" />
+          </button>
+          <button class="g-btn g-btn-ghost" value="no">
+            <T en="Cancel" ja="キャンセル" />
+          </button>
+        </div>
+        <p class="g-faint g-signin-legal">
+          <T
+            en="This browser will remember your answer. You can switch adult content off again any time with the 18+ button."
+            ja="この回答はこのブラウザに保存されます。18+ボタンでいつでも非表示に戻せます。"
+          />
+        </p>
       </form>
     </dialog>
 
@@ -460,6 +498,65 @@ const favicon =
           markGrid();
         }),
       );
+
+      // 18+ toggle. Off by default. Turning it on the first time asks for age confirmation;
+      // the answer is remembered per browser ('spoiler-gauge:age-ok').
+      const adultBtn = document.getElementById('g-adult') as HTMLButtonElement | null;
+      const ageDlg = document.getElementById('g-age') as HTMLDialogElement | null;
+      const store = (k: string, v: string | null) => {
+        try {
+          if (v === null) localStorage.removeItem(k);
+          else localStorage.setItem(k, v);
+        } catch {
+          /* not remembered, still applied to this page */
+        }
+      };
+      const ageConfirmed = () => {
+        try {
+          return localStorage.getItem('spoiler-gauge:age-ok') === '1';
+        } catch {
+          return false;
+        }
+      };
+      const markAdult = () =>
+        adultBtn?.setAttribute(
+          'aria-pressed',
+          String(document.documentElement.dataset.adult === 'on'),
+        );
+      function setAdult(on: boolean) {
+        if (on) document.documentElement.dataset.adult = 'on';
+        else delete document.documentElement.dataset.adult;
+        store('spoiler-gauge:adult', on ? 'on' : null);
+        markAdult();
+        window.dispatchEvent(new CustomEvent('gauge:adult', { detail: on }));
+      }
+      function requestAdult() {
+        if (ageConfirmed()) setAdult(true);
+        else ageDlg?.showModal();
+      }
+      markAdult();
+      adultBtn?.addEventListener('click', () =>
+        document.documentElement.dataset.adult === 'on' ? setAdult(false) : requestAdult(),
+      );
+      ageDlg?.addEventListener('close', () => {
+        if (ageDlg.returnValue === 'yes') {
+          store('spoiler-gauge:age-ok', '1');
+          setAdult(true);
+        }
+        ageDlg.returnValue = '';
+      });
+      ageDlg?.addEventListener('click', (e) => {
+        if (e.target !== ageDlg) return;
+        const r = ageDlg.getBoundingClientRect();
+        const inside =
+          e.clientX >= r.left &&
+          e.clientX <= r.right &&
+          e.clientY >= r.top &&
+          e.clientY <= r.bottom;
+        if (!inside) ageDlg.close();
+      });
+      // Anime pages call this from their "show adult content" button.
+      (window as unknown as { gaugeAdultOn: () => void }).gaugeAdultOn = requestAdult;
 
       const hq = document.getElementById('hq') as HTMLInputElement | null;
       const hqList = document.getElementById('hq-list');

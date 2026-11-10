@@ -84,6 +84,7 @@ export interface AniListInfo {
   nextAiringEpisode: { episode: number } | null;
   siteUrl: string;
   title: { native: string | null; english: string | null } | null;
+  isAdult: boolean | null;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -232,7 +233,7 @@ export async function aniListInfo(id: number): Promise<AniListInfo | null> {
   try {
     const data = await gql<{ Media: AniListInfo | null }>(
       ANILIST,
-      `query($id: Int) { Media(id: $id, type: ANIME) { episodes status genres siteUrl nextAiringEpisode { episode } title { native english } } }`,
+      `query($id: Int) { Media(id: $id, type: ANIME) { episodes status genres siteUrl nextAiringEpisode { episode } title { native english } isAdult } }`,
       { id },
     );
     return data.Media;
@@ -325,8 +326,17 @@ export async function popularityBySlugs(slugs: string[]): Promise<Map<string, nu
 export interface ExtraTitles {
   native: string | null;
   english: string | null;
+  /** Adult-themed: AniList's adult flag, or the Ecchi genre. Hidden unless 18+ content is on. */
+  adult: boolean;
 }
-const TITLE_CACHE_KEY = 'spoiler-gauge:anilist-titles';
+
+/** The genres that count as adult-themed for the 18+ toggle. */
+export const ADULT_GENRES = ['Ecchi', 'Hentai'];
+export const isAdultMedia = (m: { isAdult?: boolean | null; genres?: string[] | null } | null) =>
+  !!m && (!!m.isAdult || (m.genres ?? []).some((g) => ADULT_GENRES.includes(g)));
+
+// v2: entries now also record the adult flag (older entries without it are looked up again).
+const TITLE_CACHE_KEY = 'spoiler-gauge:anilist-v2';
 let titleCache: Record<string, ExtraTitles> | null = null;
 function readTitleCache(): Record<string, ExtraTitles> {
   if (titleCache) return titleCache;
@@ -348,8 +358,9 @@ function writeTitleCache() {
 }
 
 /**
- * Japanese/English titles from AniList for anime that AnimeThemes lacks them for (e.g. it has
- * no Japanese title for Overlord). Remembered per browser, so each anime is only looked up once.
+ * Extra AniList info per anime: Japanese/English titles AnimeThemes lacks (e.g. it has no
+ * Japanese title for Overlord) and whether it's adult-themed. Remembered per browser, so each
+ * anime is only looked up once.
  */
 export async function aniListTitlesBySlugs(slugs: string[]): Promise<Map<string, ExtraTitles>> {
   const cache = readTitleCache();
@@ -364,17 +375,24 @@ export async function aniListTitlesBySlugs(slugs: string[]): Promise<Map<string,
   const byId = new Map<number, ExtraTitles>();
   for (let i = 0; i < ids.length; i += 50) {
     const data = await gql<{
-      Page: { media: { id: number; title: ExtraTitles }[] };
+      Page: {
+        media: {
+          id: number;
+          isAdult: boolean | null;
+          genres: string[] | null;
+          title: { native: string | null; english: string | null };
+        }[];
+      };
     }>(
       ANILIST,
-      `query($ids: [Int]) { Page(perPage: 50) { media(id_in: $ids, type: ANIME) { id title { native english } } } }`,
+      `query($ids: [Int]) { Page(perPage: 50) { media(id_in: $ids, type: ANIME) { id isAdult genres title { native english } } } }`,
       { ids: ids.slice(i, i + 50) },
     );
-    for (const m of data.Page.media) byId.set(m.id, m.title);
+    for (const m of data.Page.media) byId.set(m.id, { ...m.title, adult: isAdultMedia(m) });
   }
   for (const s of missing) {
     const id = idBySlug.get(s);
-    const titles = (id && byId.get(id)) || { native: null, english: null };
+    const titles = (id && byId.get(id)) || { native: null, english: null, adult: false };
     cache[s] = titles; // also remember "AniList has nothing", so we don't ask again
     out.set(s, titles);
   }

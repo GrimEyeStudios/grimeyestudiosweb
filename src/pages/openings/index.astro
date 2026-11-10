@@ -111,7 +111,7 @@ import T from '../../components/T.astro';
     document
       .querySelectorAll<HTMLElement>('[data-title-ja]')
       .forEach((el) => (el.title = el.dataset.titleJa!));
-  import { animeCard, colorCards, skeletonCards } from '../../openings/cards';
+  import { animeCard, colorCards, skeletonCards, adultOn } from '../../openings/cards';
   import { $, h, mount } from '../../openings/dom';
 
   type Sort = 'season' | 'popular' | 'votes';
@@ -162,6 +162,9 @@ import T from '../../components/T.astro';
   const filtering = () => levels.size > 0;
 
   function cardVisible(card: HTMLElement) {
+    // Adult-themed anime are hidden unless 18+ content is on (CSS hides them too; this keeps
+    // section headings and match counts right).
+    if (card.dataset.adult === '1' && !adultOn()) return false;
     if (!filtering()) return true;
     const lv = card.dataset.level;
     return lv !== undefined && lv !== 'none' && levels.has(Number(lv));
@@ -219,20 +222,23 @@ import T from '../../components/T.astro';
   function updateResultsCount() {
     if (results.hidden) return;
     const shown = resultsGrid.querySelectorAll('.g-card[data-slug]:not([hidden])').length;
+    const adultHidden = adultOn()
+      ? 0
+      : resultsGrid.querySelectorAll('.g-card[data-adult="1"]').length;
     $('#results-count')!.textContent = filtering()
       ? t('resultsMatch', { shown, n: resultsTotal })
-      : t('anime', { n: resultsTotal });
-    const empty = resultsGrid.querySelector('.g-filter-empty');
-    if (filtering() && resultsTotal && !shown) {
-      if (!empty)
-        resultsGrid.append(
-          h(
-            'p',
-            { class: 'g-empty g-filter-empty', style: 'grid-column:1/-1' },
-            t('noFilterMatches'),
-          ),
-        );
-    } else empty?.remove();
+      : adultHidden
+        ? t('resultsAdultHidden', { shown, hidden: adultHidden })
+        : t('anime', { n: resultsTotal });
+    resultsGrid.querySelector('.g-filter-empty')?.remove();
+    if (resultsTotal && !shown)
+      resultsGrid.append(
+        h(
+          'p',
+          { class: 'g-empty g-filter-empty', style: 'grid-column:1/-1' },
+          filtering() ? t('noFilterMatches') : t('allResultsAdult'),
+        ),
+      );
   }
 
   const seasonRank = (a: AnimeCard) =>
@@ -516,6 +522,12 @@ import T from '../../components/T.astro';
   }).observe(sentinel);
   // Backup for browsers/tabs where the observer is throttled.
   addEventListener('scroll', maybeLoadMore, { passive: true });
+
+  // 18+ switched on/off in the header: re-apply visibility, and load more if a page emptied out.
+  window.addEventListener('gauge:adult', () => {
+    applyFilter();
+    maybeLoadMore();
+  });
 
   sortSelect.addEventListener('change', () => {
     sort = sortSelect.value as Sort;
