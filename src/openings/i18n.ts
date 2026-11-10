@@ -40,6 +40,15 @@ const en = {
   titleRomaji: 'Japanese titles in English letters',
   titleNative: 'Japanese titles and Japanese interface',
   cardSize: 'Card size',
+  adultToggleTitle: 'Show adult-themed anime such as ecchi (18+)',
+  resultsAdultHidden: (v: V) => `${s(+v.shown, 'anime', 'anime')} · ${v.hidden} hidden (18+)`,
+  allResultsAdult:
+    'All results are adult-themed (18+) and hidden. Use the 18+ button in the header to show them.',
+  adultGateTitle: 'Adult-themed anime (18+)',
+  adultGateBody:
+    'This anime is marked as adult-themed (for example ecchi), so it’s hidden while 18+ content is off.',
+  adultGateButton: 'Show 18+ content',
+  adultGateBack: 'Back to search',
   cardsSmall: 'Small cards, more per row',
   cardsLarge: 'Big cards, easier to read',
   cardsSmallShort: 'Small cards',
@@ -210,6 +219,15 @@ const ja: Record<Key, Entry> = {
   titleRomaji: 'ローマ字タイトル',
   titleNative: '日本語タイトル・日本語表示',
   cardSize: 'カードの大きさ',
+  adultToggleTitle: 'エッチなど成人向けのアニメを表示（18歳以上）',
+  resultsAdultHidden: (v) => `${v.shown}作品・${v.hidden}作品を非表示（18+）`,
+  allResultsAdult:
+    'すべての結果が成人向け（18+）のため非表示です。ヘッダーの18+ボタンで表示できます。',
+  adultGateTitle: '成人向けのアニメ（18歳以上）',
+  adultGateBody:
+    'このアニメは成人向け（エッチなど）に分類されているため、18+表示がオフの間は非表示になっています。',
+  adultGateButton: '18+コンテンツを表示',
+  adultGateBack: '検索に戻る',
   cardsSmall: '小さいカード（たくさん表示）',
   cardsLarge: '大きいカード（読みやすい）',
   cardsSmallShort: '小さいカード',

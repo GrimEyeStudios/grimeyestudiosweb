@@ -4,7 +4,7 @@
  */
 import { searchAnime, cover, type AnimeCard } from './animethemes';
 import { titled, otherTitles } from './titles';
-import { fillMissingTitles } from './cards';
+import { checkCards } from './cards';
 import { t, seasonYear, formatLabel } from './i18n';
 import { animeUrl, gauge } from './config';
 import { h, mount } from './dom';
@@ -53,7 +53,13 @@ export function setupSuggest(input: HTMLInputElement, list: HTMLElement) {
       const alt = otherTitles(a.title)[0] ?? null;
       return h(
         'li',
-        { role: 'option', id: `hq-opt-${i}`, 'aria-selected': 'false', 'data-slug': a.slug },
+        {
+          role: 'option',
+          id: `hq-opt-${i}`,
+          'aria-selected': 'false',
+          'data-slug': a.slug,
+          'data-adult-pending': '',
+        },
         h(
           'a',
           { href: animeUrl(a.slug), tabindex: '-1' },
@@ -86,7 +92,7 @@ export function setupSuggest(input: HTMLInputElement, list: HTMLElement) {
       ),
     );
     mount(list, options, all);
-    fillMissingTitles(options);
+    checkCards(options);
     open();
   }
 

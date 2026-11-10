@@ -77,7 +77,7 @@ const updated = 'November 9, 2026';
       セキュリティのため、Supabaseはログインの記録（使用されたIPアドレスやブラウザの情報を含む）をログに残します。
     </p>
     <p>
-      また、ブラウザのローカルストレージ（Cookieではありません）に、ログインセッション（ログアウトすると削除）、タイトルの表示言語の設定、サイトで表示したアニメの日本語・英語タイトル（再検索を避けるため）を保存します。これらはブラウザでこのサイトのデータを消去すればいつでも削除できます。
+      また、ブラウザのローカルストレージ（Cookieではありません）に、ログインセッション（ログアウトすると削除）、表示設定（タイトルの言語、カードの大きさ、18+コンテンツの表示と18歳以上であることの確認）、サイトで表示したアニメの日本語・英語タイトルと成人向けかどうかの情報（再検索を避けるため）を保存します。これらはブラウザでこのサイトのデータを消去すればいつでも削除できます。
     </p>
     <p>
       曲を評価すると、その曲がそのアニメのものかどうかをデータベースがAnimeThemes.moeに確認します。送信されるのはアニメのIDのみで、あなたに関する情報は含まれません。
@@ -191,9 +191,10 @@ const updated = 'November 9, 2026';
     </p>
     <p>
       Your browser stores a few things locally (in local storage, not cookies): your login session
-      (removed when you sign out), your title-language choice, and the Japanese/English titles of
-      anime you've seen on the site, so they don't have to be looked up again. You can clear these
-      at any time by clearing this site's data in your browser.
+      (removed when you sign out), your display settings (title language, card size, whether 18+
+      content is shown and that you confirmed being 18 or older), and the Japanese/English titles
+      and adult-content flag of anime you've seen on the site, so they don't have to be looked up
+      again. You can clear these at any time by clearing this site's data in your browser.
     </p>
     <p>
       When you rate a song, our database asks AnimeThemes.moe whether that song belongs to that

@@ -17,7 +17,8 @@ export function animeCard(a: AnimeCard, sub?: string) {
     .join(' · ');
   return h(
     'a',
-    { class: 'g-card', href: animeUrl(a.slug), 'data-slug': a.slug },
+    // data-adult-pending: cover stays blurred until checkCards() knows whether it's adult-themed.
+    { class: 'g-card', href: animeUrl(a.slug), 'data-slug': a.slug, 'data-adult-pending': '' },
     h(
       'div',
       { class: 'g-card-cover' },
@@ -49,27 +50,28 @@ export function animeCard(a: AnimeCard, sub?: string) {
 }
 
 /**
- * Fills in Japanese/English titles AnimeThemes doesn't have (from AniList) for elements carrying
- * data-slug with a titled() child. Only runs when the current title setting needs them, e.g. a
- * Japanese title for Overlord when 日本語 is on.
+ * For every element carrying data-slug (cards, search suggestions), using AniList (cached per
+ * browser):
+ *   - marks adult-themed anime with data-adult="1" (CSS hides them unless 18+ content is on) and
+ *     clears data-adult-pending, which keeps covers blurred until the answer is in;
+ *   - fills in Japanese/English titles AnimeThemes lacks, for the current title setting.
+ * If AniList can't be reached the item is treated as not adult, so the site keeps working.
  */
-export async function fillMissingTitles(els: HTMLElement[]) {
-  const pref = getTitlePref();
-  if (pref === 'romaji') return; // AnimeThemes always has romaji
-  const need = els.filter((el) => {
-    const tt = el.querySelector<HTMLElement>('[data-t-ro]'); // all copies share the same data
-    return el.dataset.slug && tt && !(pref === 'native' ? tt.dataset.tJp : tt.dataset.tEn);
-  });
-  if (!need.length) return;
-  let found;
+export async function checkCards(els: HTMLElement[]) {
+  const items = els.filter((el) => el.dataset.slug);
+  if (!items.length) return;
+  let found: Awaited<ReturnType<typeof aniListTitlesBySlugs>> | null = null;
   try {
-    found = await aniListTitlesBySlugs(need.map((el) => el.dataset.slug!));
+    found = await aniListTitlesBySlugs(items.map((el) => el.dataset.slug!));
   } catch {
-    return; // keep the fallback title
+    /* fall through: unknown = not adult, keep fallback titles */
   }
-  for (const el of need) {
-    const extra = found.get(el.dataset.slug!);
-    if (!extra) continue;
+  const pref = getTitlePref();
+  for (const el of items) {
+    const extra = found?.get(el.dataset.slug!);
+    el.dataset.adult = extra?.adult ? '1' : '0';
+    delete el.dataset.adultPending;
+    if (!extra || pref === 'romaji') continue; // AnimeThemes always has romaji
     for (const tt of el.querySelectorAll<HTMLElement>('[data-t-ro]')) {
       if (!tt.dataset.tJp && extra.native) tt.dataset.tJp = extra.native;
       if (!tt.dataset.tEn && extra.english) tt.dataset.tEn = extra.english;
@@ -77,6 +79,9 @@ export async function fillMissingTitles(els: HTMLElement[]) {
     refreshTitles(el);
   }
 }
+
+/** Whether 18+ content is switched on (set on <html> by the header toggle). */
+export const adultOn = () => document.documentElement.dataset.adult === 'on';
 
 /**
  * Colour-codes every card by its anime's spoiler level (see anime_card_summary in
@@ -88,11 +93,14 @@ export async function colorCards(target: ParentNode | HTMLElement[] | null) {
     ? target.filter((c) => c.matches('.g-card[data-slug]'))
     : [...target.querySelectorAll<HTMLElement>('.g-card[data-slug]')];
   if (!cards.length) return;
-  fillMissingTitles(cards); // runs alongside the vote lookup
+  // The adult check runs alongside the vote lookup; callers can rely on both being done.
+  const checked = checkCards(cards);
   let stats;
   try {
     stats = await cardStats([...new Set(cards.map((c) => c.dataset.slug!))]);
+    await checked;
   } catch {
+    await checked;
     for (const card of cards) card.dataset.level = 'none';
     return;
   }
