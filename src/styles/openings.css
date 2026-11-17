@@ -766,12 +766,16 @@ textarea:focus {
 .g-safe strong {
   color: var(--text);
 }
+.g-hist-wrap {
+  margin-top: 8px;
+}
 .g-hist {
   display: flex;
   align-items: flex-end;
   gap: 2px;
   height: 36px;
-  margin-top: 8px;
+  /* faint baseline so empty episodes still read as part of the range */
+  border-bottom: 1px solid var(--line);
 }
 .g-hist span {
   flex: 1;
@@ -782,9 +786,36 @@ textarea:focus {
 }
 .g-hist-axis {
   display: flex;
-  justify-content: space-between;
+  gap: 2px;
   font-size: 0.72rem;
   color: var(--faint);
+}
+.g-hist-axis .g-hist-start {
+  flex: none;
+}
+.g-hist-range {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+}
+/* Range not starting at episode 1: a fixed-width "start" column, a gap, then the episodes. */
+.g-hist-split .g-hist .g-hist-start,
+.g-hist-split .g-hist-axis .g-hist-start {
+  flex: none;
+  width: 2.6em;
+}
+.g-hist-split .g-hist-range {
+  justify-content: space-between;
+}
+.g-hist-gap {
+  flex: none;
+  width: 10px;
+  align-self: stretch;
+}
+.g-hist .g-hist-gap {
+  border-left: 1px dashed var(--line);
+  margin-left: 4px;
+  width: 6px;
 }
 
 .g-actions {
