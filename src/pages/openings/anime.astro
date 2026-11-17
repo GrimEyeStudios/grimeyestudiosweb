@@ -413,11 +413,30 @@ import GaugeLayout from '../../layouts/GaugeLayout.astro';
     const buckets = Math.min(40, span);
     const size = span / buckets;
     const counts = new Array(buckets).fill(0);
+    // Episode to print under each bucket: its most-voted episode.
+    const topEp: [number, number][] = counts.map(() => [0, 0]);
     let fromStart = 0;
     for (const [ep, n] of votes) {
-      if (ep === 0) fromStart += n;
-      else counts[Math.min(buckets - 1, Math.floor((ep - lo) / size))] += n;
+      if (ep === 0) {
+        fromStart += n;
+        continue;
+      }
+      const b = Math.min(buckets - 1, Math.floor((ep - lo) / size));
+      counts[b] += n;
+      if (n > topEp[b][1]) topEp[b] = [ep, n];
     }
+    // Label voted bars, busiest first; when bars are thin, skip a label that would touch a
+    // neighbour's.
+    const labels: (number | null)[] = counts.map(() => null);
+    const reach = buckets > 24 ? 2 : 1;
+    counts
+      .map((c, i) => [c, i] as [number, number])
+      .filter(([c]) => c > 0)
+      .sort((a, b) => b[0] - a[0] || a[1] - b[1])
+      .forEach(([, i]) => {
+        for (let d = 1; d < reach; d++) if (labels[i - d] != null || labels[i + d] != null) return;
+        labels[i] = topEp[i][0];
+      });
     const peak = Math.max(fromStart, ...counts) || 1;
     const bar = (c: number, cls?: string) =>
       h('span', {
@@ -434,6 +453,13 @@ import GaugeLayout from '../../layouts/GaugeLayout.astro';
         bar(fromStart, 'g-hist-start'),
         joined ? '' : h('i', { class: 'g-hist-gap' }),
         counts.map((c) => bar(c)),
+      ),
+      h(
+        'div',
+        { class: 'g-hist-labels' },
+        h('span', { class: 'g-hist-start' }),
+        joined ? '' : h('i', { class: 'g-hist-gap' }),
+        labels.map((ep) => h('span', null, ep == null ? '' : String(ep))),
       ),
       h(
         'div',
