@@ -73,6 +73,8 @@ import GaugeLayout from '../../layouts/GaugeLayout.astro';
     'aria-pressed': 'false',
   });
   let episodeCount = 0;
+  // True when episodeCount came from AniList / AnimeThemes rather than the fallback guess.
+  let episodeCountKnown = false;
   const openForms = new Set<number>();
   const themeEls = new Map<number, HTMLElement>();
 
@@ -377,31 +379,75 @@ import GaugeLayout from '../../layouts/GaugeLayout.astro';
     );
     box.append(...lines);
 
-    // histogram 0..max (bucketed to ≤40 bars)
-    const maxEp = Math.max(...sorted.map(([ep]) => ep));
-    if (maxEp > 0) {
-      const buckets = Math.min(40, maxEp + 1);
-      const size = (maxEp + 1) / buckets;
-      const counts = new Array(buckets).fill(0);
-      for (const [ep, n] of sorted) counts[Math.min(buckets - 1, Math.floor(ep / size))] += n;
-      const peak = Math.max(...counts);
-      box.append(
-        h(
-          'div',
-          { class: 'g-hist', 'aria-hidden': 'true' },
-          counts.map((c) =>
-            h('span', { style: `height:${Math.max(c ? 8 : 0, (c / peak) * 100)}%` }),
-          ),
-        ),
-        h(
-          'div',
-          { class: 'g-hist-axis', 'aria-hidden': 'true' },
-          h('span', null, t('histStart')),
-          h('span', null, t('histEp', { ep: maxEp })),
-        ),
-      );
-    }
+    box.append(renderHistogram(th, sorted));
     return box;
+  }
+
+  /**
+   * Episodes this theme's graph covers: the episodes the theme plays in (from AnimeThemes),
+   * widened to include any vote outside them. Without episode info: the whole show if it's the
+   * only theme of its kind, otherwise a 12-episode cour.
+   */
+  function histRange(th: Theme, votes: [number, number][]): [number, number] {
+    let lo = firstEpisode(th.animethemeentries);
+    let hi = maxEpisode(th.animethemeentries);
+    if (lo === null || hi === null) {
+      const sameKind = anime.animethemes.filter((x) => x.type === th.type).length;
+      lo = 1;
+      hi = episodeCountKnown && sameKind <= 1 ? episodeCount : Math.min(12, episodeCount || 12);
+    }
+    for (const [ep] of votes) {
+      if (ep > 0 && ep < lo) lo = ep;
+      if (ep > hi) hi = ep;
+    }
+    return [Math.max(1, lo), Math.max(lo, hi)];
+  }
+
+  /** Bar graph of "safe after episode" votes: a "from the start" bar, then the theme's episodes. */
+  function renderHistogram(th: Theme, votes: [number, number][]) {
+    const [lo, hi] = histRange(th, votes);
+    // When the range starts at episode 1 the start bar sits right next to it on one axis;
+    // otherwise (e.g. a third opening, episodes 25–36) it's drawn apart with a gap.
+    const joined = lo === 1;
+    const span = hi - lo + 1;
+    const buckets = Math.min(40, span);
+    const size = span / buckets;
+    const counts = new Array(buckets).fill(0);
+    let fromStart = 0;
+    for (const [ep, n] of votes) {
+      if (ep === 0) fromStart += n;
+      else counts[Math.min(buckets - 1, Math.floor((ep - lo) / size))] += n;
+    }
+    const peak = Math.max(fromStart, ...counts) || 1;
+    const bar = (c: number, cls?: string) =>
+      h('span', {
+        class: cls,
+        style: `height:${Math.max(c ? 8 : 0, (c / peak) * 100)}%`,
+      });
+    const label = (ep: number) => t('histEp', { ep });
+    return h(
+      'div',
+      { class: `g-hist-wrap${joined ? '' : ' g-hist-split'}`, 'aria-hidden': 'true' },
+      h(
+        'div',
+        { class: 'g-hist' },
+        bar(fromStart, 'g-hist-start'),
+        joined ? '' : h('i', { class: 'g-hist-gap' }),
+        counts.map((c) => bar(c)),
+      ),
+      h(
+        'div',
+        { class: 'g-hist-axis' },
+        h('span', { class: 'g-hist-start' }, t('histStart')),
+        joined ? '' : h('i', { class: 'g-hist-gap' }),
+        h(
+          'span',
+          { class: 'g-hist-range' },
+          joined ? '' : h('span', null, label(lo)),
+          h('span', null, label(hi)),
+        ),
+      ),
+    );
   }
 
   function renderActions(th: Theme) {
@@ -1006,6 +1052,7 @@ import GaugeLayout from '../../layouts/GaugeLayout.astro';
     );
     const aired = ani?.nextAiringEpisode ? ani.nextAiringEpisode.episode - 1 : 0;
     episodeCount = ani?.episodes || Math.max(known, aired) || 50;
+    episodeCountKnown = Boolean(ani?.episodes || known || aired);
 
     renderPage();
     renderBookmark();
