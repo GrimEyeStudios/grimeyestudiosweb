@@ -790,6 +790,28 @@ textarea:focus {
   font-size: 0.72rem;
   color: var(--faint);
 }
+/* Episode numbers under the voted bars; cells mirror the bars so each sits centred below. */
+.g-hist-labels {
+  display: flex;
+  gap: 2px;
+  height: 1.3em;
+  padding-top: 2px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.g-hist-labels span {
+  flex: 1;
+  min-width: 2px;
+  display: flex;
+  justify-content: center;
+  white-space: nowrap;
+}
+.g-hist-labels .g-hist-start {
+  flex: 1;
+}
 .g-hist-axis .g-hist-start {
   flex: none;
 }
@@ -800,6 +822,7 @@ textarea:focus {
 }
 /* Range not starting at episode 1: a fixed-width "start" column, a gap, then the episodes. */
 .g-hist-split .g-hist .g-hist-start,
+.g-hist-split .g-hist-labels .g-hist-start,
 .g-hist-split .g-hist-axis .g-hist-start {
   flex: none;
   width: 2.6em;
